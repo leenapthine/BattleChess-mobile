@@ -25,11 +25,14 @@ export function performCapture(
     hasMoved: true,
   });
 
+  const movedProwler = { ...prowler, row: targetSquare.row, col: targetSquare.col };
+  const secondMoves = getKnightMoves(movedProwler, movedPieces);
+
   return {
     ...state,
     pieces: movedPieces,
     selectedSquare: targetSquare,
-    highlights: [],
+    highlights: secondMoves,
     abilityMode: { type: 'secondMove', pieceId: prowler.id },
   };
 }

@@ -270,7 +270,7 @@ describe('HellPawn transform flow', () => {
 });
 
 describe('Prowler second move flow', () => {
-  it('capture triggers second move mode', () => {
+  it('capture triggers second move mode with highlights', () => {
     const pr = makePiece('Prowler', 'Black', 7, 1);
     const enemy = makePiece('Pawn', 'White', 5, 2);
     const wk = makePiece('King', 'White', 0, 0);
@@ -283,6 +283,29 @@ describe('Prowler second move flow', () => {
 
     const s1 = tap(state, { row: 5, col: 2 });
     expect(s1.abilityMode.type).toBe('secondMove');
+    expect(s1.highlights.length).toBeGreaterThan(0);
+    expect(s1.selectedSquare).toEqual({ row: 5, col: 2 });
+  });
+
+  it('clicking a highlighted square completes second move', () => {
+    const pr = makePiece('Prowler', 'Black', 7, 1);
+    const enemy = makePiece('Pawn', 'White', 5, 2);
+    const wk = makePiece('King', 'White', 0, 0);
+    const bk = makePiece('King', 'Black', 7, 4);
+    const state = makeState([pr, enemy, wk, bk], {
+      currentTurn: 'Black',
+      selectedSquare: { row: 7, col: 1 },
+      highlights: [{ row: 5, col: 2, color: 'capture' }],
+    });
+
+    const s1 = tap(state, { row: 5, col: 2 });
+    const target = s1.highlights[0];
+    const s2 = tap(s1, { row: target.row, col: target.col });
+    const moved = s2.pieces.find(p => p.id === pr.id)!;
+    expect(moved.row).toBe(target.row);
+    expect(moved.col).toBe(target.col);
+    expect(s2.currentTurn).toBe('White');
+    expect(s2.abilityMode.type).toBe('none');
   });
 });
 
