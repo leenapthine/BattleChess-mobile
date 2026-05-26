@@ -79,7 +79,7 @@ describe('checkWinCondition', () => {
 });
 
 describe('turnManager', () => {
-  it('BUG #1 REGRESSION: switchTurn clears stuns for incoming player', () => {
+  it('BUG #1 REGRESSION: switchTurn clears stuns for outgoing player', () => {
     const stunnedWhite = makePiece('Pawn', 'White', 1, 0, { stunned: true });
     const stunnedBlack = makePiece('Pawn', 'Black', 6, 0, { stunned: true });
     const state = makeState([stunnedWhite, stunnedBlack], { currentTurn: 'White' });
@@ -87,8 +87,8 @@ describe('turnManager', () => {
     expect(result.currentTurn).toBe('Black');
     const black = result.pieces.find(p => p.id === stunnedBlack.id)!;
     const white = result.pieces.find(p => p.id === stunnedWhite.id)!;
-    expect(black.stunned).toBe(false);
-    expect(white.stunned).toBe(true);
+    expect(white.stunned).toBe(false);
+    expect(black.stunned).toBe(true);
   });
 
   it('switchTurn clears selection and highlights', () => {

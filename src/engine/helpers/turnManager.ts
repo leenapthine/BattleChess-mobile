@@ -3,7 +3,7 @@ import { applyStunEffect } from '@/engine/pieces/GhostKnight';
 
 export function switchTurn(state: GameState): GameState {
   const nextTurn: Color = state.currentTurn === 'White' ? 'Black' : 'White';
-  const pieces = clearStuns(state.pieces, nextTurn);
+  const pieces = clearStuns(state.pieces, state.currentTurn);
 
   return {
     ...state,

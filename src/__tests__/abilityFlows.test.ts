@@ -397,3 +397,66 @@ describe('QueenOfDomination dominate flow', () => {
     expect(s2.abilityMode.type).toBe('domination');
   });
 });
+
+describe('GhostKnight stun flow', () => {
+  it('moving adjacent to enemy stuns them', () => {
+    const gk = makePiece('GhostKnight', 'White', 4, 1);
+    const enemy = makePiece('HellPawn', 'Black', 2, 1);
+    const wk = makePiece('King', 'White', 0, 4);
+    const bk = makePiece('King', 'Black', 7, 4);
+    const state = makeState([gk, enemy, wk, bk], {
+      selectedSquare: { row: 4, col: 1 },
+      highlights: [{ row: 2, col: 2, color: 'move' }],
+    });
+
+    const s1 = tap(state, { row: 2, col: 2 });
+    const movedGK = s1.pieces.find(p => p.id === gk.id)!;
+    expect(movedGK.row).toBe(2);
+    expect(movedGK.col).toBe(2);
+
+    const enemyAfter = s1.pieces.find(p => p.id === enemy.id)!;
+    expect(enemyAfter.stunned).toBe(true);
+  });
+
+  it('stunned piece cannot be selected on next turn', () => {
+    const gk = makePiece('GhostKnight', 'White', 4, 1);
+    const enemy = makePiece('HellPawn', 'Black', 2, 1);
+    const wk = makePiece('King', 'White', 0, 4);
+    const bk = makePiece('King', 'Black', 7, 4);
+    const state = makeState([gk, enemy, wk, bk], {
+      selectedSquare: { row: 4, col: 1 },
+      highlights: [{ row: 2, col: 2, color: 'move' }],
+    });
+
+    const s1 = tap(state, { row: 2, col: 2 });
+    expect(s1.currentTurn).toBe('Black');
+
+    const s2 = tap(s1, { row: 2, col: 1 });
+    expect(s2.selectedSquare).toBeNull();
+  });
+
+  it('stun clears when it becomes that players turn again', () => {
+    const gk = makePiece('GhostKnight', 'White', 2, 2);
+    const enemy = makePiece('HellPawn', 'Black', 2, 1, { stunned: true });
+    const bk = makePiece('King', 'Black', 7, 4);
+    const wk = makePiece('King', 'White', 0, 4);
+    const otherBlack = makePiece('Pawn', 'Black', 6, 4);
+    const state = makeState([gk, enemy, bk, wk, otherBlack], {
+      currentTurn: 'Black',
+    });
+
+    // Black moves another piece
+    const s1 = tap(state, { row: 6, col: 4 });
+    const s2 = tap(s1, { row: 5, col: 4 });
+    expect(s2.currentTurn).toBe('White');
+
+    // White moves
+    const s3 = tap(s2, { row: 0, col: 4 });
+    const s4 = tap(s3, { row: 1, col: 4 });
+    expect(s4.currentTurn).toBe('Black');
+
+    // Enemy stun should be cleared
+    const enemyNow = s4.pieces.find(p => p.id === enemy.id)!;
+    expect(enemyNow.stunned).toBe(false);
+  });
+});
