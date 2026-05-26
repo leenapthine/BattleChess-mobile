@@ -26,8 +26,7 @@ export function performCapture(
   });
 
   const movedProwler = { ...prowler, row: targetSquare.row, col: targetSquare.col };
-  const secondMoves = getKnightMoves(movedProwler, movedPieces)
-    .filter(h => h.color === 'move');
+  const secondMoves = getKnightMoves(movedProwler, movedPieces);
 
   if (secondMoves.length === 0) {
     return {
@@ -54,14 +53,21 @@ export function performSecondMove(
   targetSquare: { row: number; col: number },
   state: GameState,
 ): GameState {
-  const movedPieces = updatePiece(state.pieces, prowler.id, {
+  let pieces = state.pieces;
+
+  const target = getPieceAt(targetSquare, pieces);
+  if (target && target.color !== prowler.color && !target.isStone) {
+    pieces = removePiece(pieces, target.id);
+  }
+
+  pieces = updatePiece(pieces, prowler.id, {
     row: targetSquare.row,
     col: targetSquare.col,
   });
 
   return {
     ...state,
-    pieces: movedPieces,
+    pieces,
     selectedSquare: null,
     highlights: [],
     abilityMode: { type: 'none' },

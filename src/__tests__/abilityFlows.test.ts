@@ -287,20 +287,19 @@ describe('Prowler second move flow', () => {
     };
   }
 
-  it('capture triggers second move with move-only highlights', () => {
+  it('capture triggers second move with knight highlights', () => {
     const { pr, state } = prowlerCaptureState();
     const s1 = tap(state, { row: 5, col: 2 });
     expect(s1.abilityMode.type).toBe('secondMove');
     expect(s1.highlights.length).toBeGreaterThan(0);
-    expect(s1.highlights.every(h => h.color === 'move')).toBe(true);
     expect(s1.selectedSquare).toEqual({ row: 5, col: 2 });
   });
 
-  it('second move highlights do not include occupied squares', () => {
+  it('second move highlights include enemies but not friendlies', () => {
     const { state, enemy2, friendly } = prowlerCaptureState();
     const s1 = tap(state, { row: 5, col: 2 });
     const coords = s1.highlights.map(h => `${h.row},${h.col}`);
-    expect(coords).not.toContain(`${enemy2.row},${enemy2.col}`);
+    expect(coords).toContain(`${enemy2.row},${enemy2.col}`);
     expect(coords).not.toContain(`${friendly.row},${friendly.col}`);
   });
 
@@ -316,6 +315,21 @@ describe('Prowler second move flow', () => {
     expect(s2.abilityMode.type).toBe('none');
   });
 
+  it('second move can capture an enemy', () => {
+    const { pr, state, enemy2 } = prowlerCaptureState();
+    const s1 = tap(state, { row: 5, col: 2 });
+    const captureHL = s1.highlights.find(h => h.row === enemy2.row && h.col === enemy2.col);
+    expect(captureHL).toBeDefined();
+    expect(captureHL!.color).toBe('capture');
+
+    const s2 = tap(s1, { row: enemy2.row, col: enemy2.col });
+    expect(s2.pieces.find(p => p.id === enemy2.id)).toBeUndefined();
+    const moved = s2.pieces.find(p => p.id === pr.id)!;
+    expect(moved.row).toBe(enemy2.row);
+    expect(moved.col).toBe(enemy2.col);
+    expect(s2.currentTurn).toBe('White');
+  });
+
   it('clicking a friendly piece does NOT end the turn', () => {
     const { state, friendly } = prowlerCaptureState();
     const s1 = tap(state, { row: 5, col: 2 });
@@ -325,13 +339,15 @@ describe('Prowler second move flow', () => {
     expect(s2.highlights.length).toBeGreaterThan(0);
   });
 
-  it('clicking an enemy piece does NOT end the turn', () => {
-    const { state, enemy2 } = prowlerCaptureState();
+  it('clicking an enemy not on a highlight does NOT end the turn', () => {
+    const { state } = prowlerCaptureState();
     const s1 = tap(state, { row: 5, col: 2 });
-    const s2 = tap(s1, { row: enemy2.row, col: enemy2.col });
+    const farEnemy = makePiece('Pawn', 'White', 0, 7);
+    const s1WithFar = { ...s1, pieces: [...s1.pieces, farEnemy] };
+    const s2 = tap(s1WithFar, { row: 0, col: 7 });
     expect(s2.abilityMode.type).toBe('secondMove');
     expect(s2.currentTurn).toBe('Black');
-    expect(s2.pieces.find(p => p.id === enemy2.id)).toBeDefined();
+    expect(s2.pieces.find(p => p.id === farEnemy.id)).toBeDefined();
   });
 
   it('clicking an empty non-highlighted square does NOT end the turn', () => {
