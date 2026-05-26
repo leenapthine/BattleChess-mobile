@@ -197,9 +197,7 @@ export function handleSecondMoveAbility(state: GameState, square: Square): GameS
 
   const highlight = state.highlights.find(h => h.row === square.row && h.col === square.col);
   if (!highlight) {
-    return checkWinCondition(switchTurn({
-      ...state, selectedSquare: null, highlights: [], abilityMode: { type: 'none' },
-    }));
+    return state;
   }
 
   return checkWinCondition(performSecondMove(prowler, square, state));

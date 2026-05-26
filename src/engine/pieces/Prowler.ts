@@ -26,7 +26,19 @@ export function performCapture(
   });
 
   const movedProwler = { ...prowler, row: targetSquare.row, col: targetSquare.col };
-  const secondMoves = getKnightMoves(movedProwler, movedPieces);
+  const secondMoves = getKnightMoves(movedProwler, movedPieces)
+    .filter(h => h.color === 'move');
+
+  if (secondMoves.length === 0) {
+    return {
+      ...state,
+      pieces: movedPieces,
+      selectedSquare: null,
+      highlights: [],
+      abilityMode: { type: 'none' },
+      currentTurn: state.currentTurn === 'White' ? 'Black' : 'White',
+    };
+  }
 
   return {
     ...state,
