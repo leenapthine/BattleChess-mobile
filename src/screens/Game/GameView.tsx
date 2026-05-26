@@ -59,8 +59,8 @@ export function GameView({ pieces, selectedSquare, highlights, status, onSquareP
                   <Image
                     source={getSprite(piece.color, piece.type)!}
                     style={{
-                      width: tileSize * 0.85,
-                      height: tileSize * 0.85,
+                      width: tileSize,
+                      height: tileSize,
                       opacity: piece.stunned ? 0.4 : piece.isStone ? 0.6 : 1,
                     }}
                     resizeMode="contain"
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   },
   square: {
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
   },
   dot: {
     backgroundColor: 'rgba(0, 0, 0, 0.25)',
