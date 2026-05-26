@@ -15,18 +15,21 @@ No test suite yet. TypeScript strict mode enabled.
 
 ## Architecture
 
-React Native (Expo) app with TypeScript. Game state managed by a pure reducer.
+Expo (React Native) app with TypeScript. Game state managed by a pure reducer.
 
 ### Folder structure
 
-- `src/engine/` — pure TS game logic. Zero React imports. Pieces, reducer, helpers.
+- `src/engine/` — pure TS game logic. Zero React imports.
 - `src/engine/pieces/` — one file per piece type, each exports `getValidMoves` (and optionally `getAbilityTargets`)
-- `src/engine/helpers/` — shared move generation, capture logic, turn management
-- `src/screens/` — each screen is a folder with Header/View/Hook split (see below)
+- `src/engine/helpers/` — shared move generation helpers
+- `src/engine/utils.ts` — board queries and immutable update helpers
+- `src/engine/gameReducer.ts` — central reducer (skeleton, wired in Chunk G)
+- `src/engine/initialBoard.ts` — default starting layout (Necro vs Demon)
+- `src/screens/` — each screen is a folder with Header/View/Hook split
 - `src/components/` — shared UI components
 - `src/hooks/` — shared hooks
 - `src/navigation/` — navigation config
-- `src/types/` — shared type definitions (core types in `game.ts`)
+- `src/types/game.ts` — core types: `Piece`, `GameState`, `GameAction`, `AbilityMode`
 - `src/utils/` — shared utility functions
 - `src/constants/` — app-wide constants
 
@@ -47,19 +50,17 @@ Every screen folder contains:
 All game logic is pure TypeScript — no React, no signals, no mutation.
 - Piece modules: `getValidMoves(piece, pieces) → Highlight[]`
 - State transitions: `gameReducer(state, action) → GameState`
-- The old SolidJS click dispatch chain is replaced by a reducer + thin action classifier
+- Multi-step abilities tracked by `AbilityMode` discriminated union
+
+### Engine progress
+
+- Basic pieces: done (Pawn, Knight, Bishop, Rook, Queen, King)
+- Necro guild: done (NecroPawn, GhostKnight, Necromancer, DeadLauncher, GhoulKing, QueenOfBones)
+- Demon guild: not started
+- Beast guild: not started
+- Wizard guild: not started
+- Reducer integration: not started
 
 ### Game reference
 
-See `GAME_OVERVIEW.md` for the full game design: all 4 guilds, 24 piece abilities, starting configurations, edge cases, and known bugs from the original implementation (being fixed during the engine port).
-
-### Known bugs being fixed
-
-These bugs from the original SolidJS codebase are being corrected during the engine port:
-- White stunned pieces never un-stun (`for...in` bug)
-- WizardTower and WizardKing standard capture don't end turn
-- Prowler second-move passes wrong piece to capture handler
-- DeadLauncher shows all squares at distance 3 instead of only enemy-occupied
-- GhoulKing raise consumes turn instead of being free
-- Necromancer resurrection doesn't end turn
-- handleCapture receives null capturingPiece in some paths
+See `GAME_OVERVIEW.md` for the full game design: all 4 guilds, 24 piece abilities, starting configurations, edge cases, and known bugs.

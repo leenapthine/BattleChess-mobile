@@ -1,8 +1,8 @@
 # BattleChess — Full Game Overview
 
 > A fantasy chess variant with 4 guilds, each with 6 unique units and special abilities.  
-> Frontend: SolidJS (SolidStart) + PixiJS + TailwindCSS  
-> Backend: Django (planned — empty skeleton)
+> Mobile app: Expo (React Native) + TypeScript  
+> Backend: Supabase (planned)
 
 ---
 
@@ -33,43 +33,30 @@
 ## Project Structure
 
 ```
-repo/
-├── frontend/
-│   ├── public/sprites/          # PNG sprites — named {Color}{PieceType}.png
-│   └── src/
-│       ├── app.css / app.tsx    # App entry point
-│       ├── routes/index.jsx     # Main page layout (Board + PieceViewer + PieceDescription)
-│       ├── components/
-│       │   ├── Board.jsx        # PixiJS canvas host
-│       │   ├── Square.jsx       # PixiJS square graphic factory
-│       │   ├── PieceViewer.jsx  # Shows selected piece sprite
-│       │   └── PieceDescription.jsx  # Shows selected piece rules text
-│       ├── data/
-│       │   └── pieceDescriptions.js  # All piece tooltip descriptions
-│       ├── state/
-│       │   └── gameState.js     # All reactive SolidJS signals
-│       └── pixi/
-│           ├── clickHandler.js  # Central click dispatcher
-│           ├── drawBoard.js     # PixiJS render loop
-│           ├── highlight.js     # Routes highlight calls to the correct piece module
-│           ├── utils.js         # getPieceAt, isOpponentPiece, isSquareSelected, getAdjacentTiles
-│           ├── logic/           # Cross-cutting action handlers
-│           │   ├── clearBoardState.js
-│           │   ├── handleCapture.js
-│           │   ├── handlePieceMove.js
-│           │   ├── handleResurrectionClick.js
-│           │   ├── handleSacrificeClick.js
-│           │   ├── handleDeadLauncherClick.js
-│           │   ├── handleGhoulKingClick.js
-│           │   └── handleQueenOfDominationClick.js
-│           └── pieces/
-│               ├── basic/       # Pawn, Rook, Knight, Bishop, Queen, King
-│               ├── necro/       # Necromancer guild pieces
-│               ├── demons/      # Demon guild pieces
-│               ├── beasts/      # BeastMaster guild pieces
-│               └── wizards/     # Wizard guild pieces
-└── backend/
-    └── chessgame/               # Django app — empty models, empty views
+src/
+├── engine/                      # Pure TS game logic — zero React imports
+│   ├── gameReducer.ts           # Central reducer: (state, action) → newState
+│   ├── initialBoard.ts          # Default starting layout (Necro vs Demon)
+│   ├── utils.ts                 # getPieceAt, isOpponent, isInBounds, etc.
+│   ├── helpers/
+│   │   └── moveHelpers.ts       # Sliding/step move generators shared across pieces
+│   └── pieces/
+│       ├── index.ts             # Registry mapping PieceType → module
+│       ├── Pawn.ts .. King.ts   # Basic pieces
+│       ├── NecroPawn.ts .. QueenOfBones.ts   # Necromancer guild
+│       ├── HellPawn.ts .. QueenOfDestruction.ts  # Demon guild (planned)
+│       ├── PawnHopper.ts .. QueenOfDomination.ts # Beast guild (planned)
+│       └── YoungWiz.ts .. QueenOfIllusions.ts    # Wizard guild (planned)
+├── screens/                     # Each screen: Header/View/Hook split
+│   ├── Game/                    # Main game board (planned)
+│   └── ArmyBuilder/             # Guild/race selection (planned)
+├── components/                  # Shared UI components
+├── hooks/                       # Shared hooks
+├── navigation/                  # Navigation config
+├── types/
+│   └── game.ts                  # Core types: Piece, GameState, GameAction, etc.
+├── utils/                       # Shared utility functions
+└── constants/                   # App-wide constants
 ```
 
 ---
@@ -78,13 +65,12 @@ repo/
 
 | Layer | Technology |
 |---|---|
-| Rendering | PixiJS (2D canvas) |
-| Reactivity | SolidJS signals (SolidStart) |
-| Styling | TailwindCSS |
-| Language | JavaScript (ES modules) |
-| Backend | Django + Django REST Framework (planned) |
-| Database | PostgreSQL (planned) |
-| Multiplayer | WebSocket (planned) |
+| Framework | Expo (React Native) — iOS, Android, Web |
+| Language | TypeScript (strict mode) |
+| Game state | Pure reducer (`gameReducer.ts`) |
+| Board UI | React Native Pressable grid (planned) |
+| Backend | Supabase (planned) |
+| Multiplayer | Supabase Realtime (planned) |
 
 ---
 
@@ -125,130 +111,67 @@ The BeastMaster and Wizard guilds have full sprite assets and complete logic, bu
 
 ---
 
-## Global State
+## Game State
 
-All game state lives in `src/state/gameState.js` as SolidJS reactive signals. Every state change triggers a `drawBoard()` re-render.
+All game state is a single immutable `GameState` object managed by a pure reducer. See `src/types/game.ts` for full type definitions.
 
-| Signal | Type | Purpose |
+| Field | Type | Purpose |
 |---|---|---|
-| `selectedSquare` | `{row, col} \| null` | The currently selected square |
-| `highlights` | `Array<{row, col, color}>` | Tiles currently highlighted |
-| `resurrectionTargets` | `Array<{row, col}>` | Tiles available for resurrection placement |
-| `pendingResurrectionColor` | `"White" \| "Black" \| null` | Color of the piece being resurrected |
-| `sacrificeMode` | `PieceObject \| null` | NecroPawn that is currently armed for sacrifice |
-| `sacrificeArmed` | `boolean` | Whether the sacrifice detonation is primed |
-| `launchMode` | `PieceObject \| null` | DeadLauncher or Portal that is in launch/eject mode |
-| `isInLoadingMode` | `boolean` | Whether DeadLauncher or Portal is waiting for a piece to be loaded |
-| `isInSacrificeSelectionMode` | `boolean` | Whether player is selecting pawns to sacrifice for QueenOfBones revival |
-| `capturedPiece` | `PieceObject \| null` | Most recently captured piece (for post-capture effects) |
-| `isInBoulderMode` | `boolean` | Whether BoulderThrower or Beholder is in ranged-attack mode |
-| `isInDominationMode` | `boolean` | Whether QueenOfDomination's dominated piece is waiting to move |
-| `isSecondMove` | `boolean` | Whether Prowler has captured and is now making its second Knight move |
-| `selectedPiece` | `PieceObject \| null` | Currently selected piece (used in Prowler second-move flow) |
-| `pieceViewerPiece` | `PieceObject \| null` | Piece displayed in the PieceViewer sidebar |
-| `pieceDescription` | `string` | Description text shown in the sidebar |
-| `currentTurn` | `"White" \| "Black"` | Whose turn it is |
-| `pieces` | `Array<PieceObject>` | Full board state — single source of truth |
-| `tileSize` | `number` | 84px (desktop) or 41px (mobile) |
+| `pieces` | `Piece[]` | Full board state — single source of truth |
+| `currentTurn` | `'White' \| 'Black'` | Whose turn it is |
+| `selectedSquare` | `Square \| null` | The currently selected square |
+| `highlights` | `Highlight[]` | Tiles currently highlighted (move, capture, ability, preview) |
+| `abilityMode` | `AbilityMode` | Discriminated union tracking multi-step ability flows (sacrifice, resurrection, loading, launch, boulder, domination, secondMove, sacrificeSelection) |
+| `status` | `GameStatus` | Active game or winner declared |
 
 ---
 
 ## Rendering & Board
 
-`drawBoard.js` completely clears and redraws the PixiJS stage on every state change:
+The board is an 8×8 grid of React Native `Pressable` components (planned — not yet implemented). PixiJS has been dropped entirely.
 
-1. Draws 8×8 board squares (alternating dark/light green)
-2. Applies highlight borders to selected/highlighted/resurrection-target squares
-3. Loads piece sprites from `/sprites/{Color}{Type}.png` (cached in `loadedTextures`)
-4. Attaches click handler to each square
-5. Scales sprites to fit `tileSize`
+Sprites live in `assets/sprites/{Color}{Type}.png` — e.g. `WhiteNecromancer.png`, `BlackHellPawn.png`.
 
-**Highlight border colors:**
-- Selected square: yellow
-- Resurrection target: cyan (`0x00CCFF`)
-- Normal highlight: uses the highlight's own color field
-
-The board is responsive — on mobile (viewport < 640px) tile size halves from 84px to 41px.
+**Highlight types** (semantic, not hex colors):
+- `move` — valid empty square
+- `capture` — enemy-occupied square
+- `ability` — special ability target / friendly target
+- `preview` — opponent piece range (read-only)
 
 ---
 
-## Click Handler — The Central Dispatcher
+## Action Dispatch
 
-`clickHandler.js → handleSquareClick(row, col, pixiApp)` is called on every board click. It routes to the appropriate handler in priority order:
+The old 17-handler click dispatch chain is replaced by a pure reducer pattern:
 
-```
-Click received
-  ↓
-Is clicked square highlighted?
-  ├── 1. handleSacrificeClick       (NecroPawn detonation)
-  ├── 2. handleDeadLauncherClick    (load/launch pawn)
-  ├── 3. handleGhoulKingClick       (raise NecroPawn)
-  ├── 4. handleBoulderThrowerClick  (ranged boulder)
-  ├── 5. handleYoungWizZapClick     (zap forward)
-  ├── 6. handleWizardTowerCapture   (ranged diagonal shot)
-  ├── 7. handleWizardKingCapture    (vertical line-of-sight shot)
-  ├── 8. handleQueenOfDominationClick (dominate adjacent friendly)
-  ├── 9. handleQueenOfIllusionsSwap (swap with friendly pawn)
-  ├── 10. handleFamiliarClick       (toggle stone form)
-  ├── 11. handlePortalClick         (load/eject piece)
-  ├── 12. handleHowlerCapture       (absorb enemy movement type)
-  ├── 13. handleHellPawnCapture     (transform into captured piece)
-  ├── 14. handleProwlerCapture      (capture + second move)
-  ├── 15. handleBeholderClick       (ranged boulder)
-  ├── 16. handleHellKingCapture     (convert enemy to friendly)
-  └── 17. handlePieceMove           (standard move / fallback)
+1. User taps a square
+2. A thin "classify action" layer inspects the current `GameState` and produces a `GameAction`
+3. `gameReducer(state, action) → newState` applies the action immutably
+4. React re-renders from the new state
 
-Is not highlighted?
-  ├── Check if in domination mode (block other clicks)
-  ├── handleResurrectionClick (place resurrected pawn / sacrifice for QueenOfBones)
-  ├── Select new piece (highlights valid moves)
-  └── Deselect / clear board state
-```
+**Action types:** `SELECT_SQUARE`, `MOVE_PIECE`, `ABILITY_ACTION`, `END_TURN`, `DESELECT`
 
-Each handler returns `true` if it consumed the click (short-circuits remaining handlers), or `false` to pass through.
+Multi-step abilities (sacrifice, resurrection, loading/launching, domination, etc.) are tracked by the `abilityMode` discriminated union on `GameState` rather than separate boolean flags.
 
 ---
 
-## Core Logic Modules
+## Engine Design
 
-### `handlePieceMove.js`
-Standard move execution:
-1. Finds selected piece and destination
-2. If destination has an enemy → `handleCapture()`
-3. Maps piece to new position
-4. Runs `handlePawnHopperPostMove()` (hop-capture check)
-5. Checks if a QueenOfDomination is tracking the moved piece → reverts domination
-6. Commits state: `setPieces`, `setSelectedSquare(null)`, `setHighlights([])`
-7. Calls `applyStunEffect()` (GhostKnight passive)
-8. Calls `triggerResurrectionPrompt()` (Necromancer / QueenOfBones capture check)
-9. **Bug:** Stun-clearing loop uses `for...in` instead of `for...of` for White — stuns never clear for White
-10. Redraws board
+All game logic is pure TypeScript functions with no React imports, no signals, and no mutation.
 
-### `handleCapture.js`
-Removal of a captured piece:
-1. Returns early if `capturedPiece.isStone === true` (stone pieces are immune)
-2. Calls `triggerDetonate()` — if captured piece is a QueenOfDestruction, detonates surroundings first
-3. Filters captured piece out of the board
-4. If the **capturing piece** is itself a QueenOfDestruction (capture-into-it scenario), removes the capturer too
-5. Calls `triggerResurrectionPrompt()` for post-capture effects
+**Piece modules** (`src/engine/pieces/`): Each piece file exports:
+- `getValidMoves(piece, pieces) → Highlight[]` — standard movement + captures
+- `getAbilityTargets?(piece, pieces) → Highlight[]` — optional special ability targets
+- Additional pure functions for ability execution (e.g. `performSacrifice`, `performRaise`, `performRevival`)
 
-### `handleResurrectionClick.js`
-Two different resurrection flows share this handler:
+**Shared helpers** (`src/engine/helpers/moveHelpers.ts`):
+- `getSlidingMoves` / `getStepMoves` — reusable move generators
+- Prebuilt: `getRookMoves`, `getBishopMoves`, `getQueenMoves`, `getKingMoves`, `getKnightMoves`
 
-**Necromancer Raise Dead:**  
-After capture, adjacent empty tiles are highlighted cyan. Player clicks one → a standard `Pawn` of the Necromancer's color is placed there. No turn switch (the raise is treated as part of the move action).
-
-**QueenOfBones Revival:**  
-After QueenOfBones is captured, if 2+ friendly pawn-type units exist, they are highlighted cyan. Player clicks two of them (sequentially) → both are removed from the board → QueenOfBones re-spawns at `d1`/`d8` (col 3, row 0 or 7). If the spawn square is occupied, the revival silently fails.
-
-### `clearBoardState.js`
-Resets all transient UI state to neutral. Accepts `{ preserveLaunch: true }` to keep `launchMode` active (used when re-selecting a piece while a launch is pending).
-
-### `handleSacrificeClick.js`
-Manages the NecroPawn 3-click flow:
-- Click 1: select (handled by main selection path)
-- Click 2: arm sacrifice (`sacrificeMode`, `sacrificeArmed`) — shows AoE highlights
-- Click 3 (on same square): detonate → `performNecroPawnSacrifice()`
+**Utilities** (`src/engine/utils.ts`):
+- Board queries: `getPieceAt`, `isOpponent`, `isFriendly`, `isEmpty`, `isInBounds`, `isPathClear`
+- Immutable updates: `removePiece`, `updatePiece`
+- Helpers: `forwardDirection`, `pawnStartRow`, `findKing`, `squaresEqual`
 
 ---
 
@@ -760,42 +683,43 @@ Every piece object in the `pieces()` array has these fields:
 
 ---
 
-## Known Bugs & Incomplete Logic
+## Known Bugs (from original codebase)
 
-| # | Location | Bug Description |
+Bugs are being fixed during the engine port. Fixed bugs are marked with ~~strikethrough~~.
+
+| # | Status | Bug Description |
 |---|---|---|
-| 1 | `handlePieceMove.js` | Stun clearing for White uses `for...in` (iterates over object keys, not array elements) — White stunned pieces never un-stun |
-| 2 | `handleProwlerCapture.js` | Second-move resolution incorrectly calls `handleCapture(selectedPiece(), currentPieces)` — `selectedPiece()` is the old captured enemy, not the Prowler; also double-calls `switchTurn()` |
-| 3 | `WizardTower.js` | `handleWizardTowerCapture` does not call `switchTurn()` — turn never switches after a ranged capture |
-| 4 | `WizardKing.js` | Standard 1-square perimeter capture does not call `switchTurn()` — only the vertical shot path does |
-| 5 | `GhoulKing.js` / `handleGhoulKingClick.js` | After raising a NecroPawn, `setSelectedSquare(null)` is called, deselecting the GhoulKing and consuming the turn — intended to be a free action |
-| 6 | `DeadLauncher.js` | `getLaunchTargets()` highlights ALL squares at distance 3, including empty and friendly — should only show enemy-occupied squares |
-| 7 | `Familiar.js` | Stone pieces can potentially be un-stoned by the opponent if state allows their click to propagate through `handleFamiliarClick` |
-| 8 | `handleResurrectionClick.js` | Necromancer raise does not clearly end the turn — `switchTurn()` is not called after placing a resurrected pawn; turn is silently consumed |
-| 9 | `Portal.js` | Ejecting a piece does NOT call `switchTurn()` — consistent with design ("unloading does not end turn") but may surprise players |
-| 10 | `Howler.js` | King-type pieces (`King`, `HellKing`, `GhoulKing`, `WizardKing`, `FrogKing`) grant no movement ability when captured by the Howler |
-| 11 | `QueenOfDomination.js` | After `returnOriginalSprite`, `pieceLoaded` is cleared to `null` on the Queen — this allows the domination ability to be used again, which may be unintended |
-| 12 | General | No check/checkmate detection — the game has no win condition |
-| 13 | General | No pawn promotion (described in piece descriptions but not implemented) |
-| 14 | `handlePieceMove.js` | `handleCapture` is called with `null` as `capturingPiece` default in some paths — the QueenOfDestruction handling inside `handleCapture` depends on `capturingPiece` being defined |
+| 1 | Open | Stun clearing for White uses `for...in` — White stunned pieces never un-stun |
+| 2 | Open | Prowler second-move passes wrong piece to capture handler; double switchTurn |
+| 3 | Open | WizardTower ranged capture doesn't end turn |
+| 4 | Open | WizardKing standard capture doesn't end turn |
+| ~~5~~ | **Fixed** | ~~GhoulKing raise consumed turn — now a free action (no turn switch)~~ |
+| ~~6~~ | **Fixed** | ~~DeadLauncher launch targets showed all distance-3 squares — now only enemy-occupied~~ |
+| 7 | Open | Stone pieces can be un-stoned by opponent via Familiar click propagation |
+| 8 | Open | Necromancer resurrection doesn't clearly end turn |
+| 9 | Open | Portal eject doesn't end turn (may be intentional) |
+| 10 | Open | Howler gains nothing from capturing king-type pieces |
+| 11 | Open | QueenOfDomination ability can be reused (may be unintended) |
+| 12 | Open | No check/checkmate detection — king-capture win condition as placeholder |
+| 13 | Open | No pawn promotion |
+| 14 | Open | handleCapture called with null capturingPiece in some paths |
 
 ---
 
 ## Features Not Yet Implemented
 
-- **Win condition** — No check, checkmate, or "king captured" detection
+- **Board UI** — React Native Pressable grid (Phase 3)
+- **Win condition** — King-capture detection first, proper checkmate later (Phase 5)
 - **Pawn promotion** — Pawns reaching the far rank do nothing
-- **En passant** — Not in scope (game uses custom pawns)
-- **Castling** — Mentioned in standard piece descriptions but not implemented
-- **Army builder / guild selection** — BeastMaster and Wizard guilds exist but cannot be selected at game start
+- **Army builder / guild selection** — Choose guilds before game start (Phase 4)
+- **Multiplayer** — Supabase Realtime sync (Phase 6)
 - **Turn timer** — No clock or time pressure
 - **Move history / undo** — No undo or replay
-- **Multiplayer** — Backend (Django) is an empty skeleton; no WebSocket or session management
 - **AI opponent** — No single-player mode
-- **Sound effects / animations** — PixiJS renders static sprites only; no movement animation
-- **Mobile drag-and-drop** — Tap-to-select works; drag is not implemented
-- **Promotion UI** — No UI for choosing a promotion piece
+- **Sound effects / animations** — Not yet planned
+- **En passant** — Not in scope (game uses custom pawns)
+- **Castling** — Not in scope
 
 ---
 
-*Last updated: 2026-05-18*
+*Last updated: 2026-05-26*
