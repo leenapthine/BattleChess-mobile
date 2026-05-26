@@ -230,7 +230,7 @@ The undead manipulation faction. Specializes in resurrection, sacrifice, and cro
 **Edge Cases:**
 - The stun effect uses the GhostKnight's **post-move** position, not where it moved from
 - Stun applies to pieces adjacent at the **landing square**, not the departure square
-- **Bug:** Stun clearing for White uses `for...in` instead of `for...of`, so White's stunned pieces never un-stun
+- Stun clearing happens at the start of each turn for the active player's pieces (fixed in engine port)
 
 ---
 
@@ -341,11 +341,10 @@ The demons use aggression, transformation, and explosive reactions to overwhelm 
 - After the second move, the turn ends
 
 **Edge Cases:**
-- The second move is tracked via `isSecondMove` signal
-- If the Prowler is in second-move mode and clicks again, `isSecondMove` is cleared and the turn tries to end
-- **Bug:** In the `isSecondMove()` branch, the code calls `handleCapture(selectedPiece(), currentPieces)` then `switchTurn()` twice in a row. The `selectedPiece()` here is the **previously captured piece object** (stored before second move), not the Prowler. This causes incorrect capture behavior and double turn-switching.
-- Capturing a QueenOfDestruction: special-cased to immediately switch turn and handle detonation without entering second-move mode
-- The Prowler's second move cannot capture — it just repositions (though the current implementation doesn't explicitly block a second capture)
+- The second move is tracked via `abilityMode: { type: 'secondMove', pieceId }` on `GameState`
+- If the Prowler clicks a non-highlighted square during second move, the turn ends
+- Capturing a QueenOfDestruction: special-cased to immediately end turn and handle detonation without entering second-move mode
+- The Prowler's second move is a reposition only (move to highlighted square, no capture)
 
 ---
 
@@ -369,7 +368,7 @@ The demons use aggression, transformation, and explosive reactions to overwhelm 
 **Edge Cases:**
 - Capturing a King-type piece (`King`, `HellKing`, `GhoulKing`, `WizardKing`, `FrogKing`) grants **no ability** — King movement is not in any category list
 - The Howler must physically move into the captured piece's square (like a normal capture); it's not a ranged attack
-- The ability check uses the `highlights` signal to confirm a red highlight before executing — this means it only fires if the target square is red-highlighted, which is the standard capture highlight
+- Ability gain is determined by `getAbilityGain()` which classifies the captured piece type into knight/rook/queen/pawn categories
 
 ---
 
@@ -677,7 +676,7 @@ Every piece object in the `pieces()` array has these fields:
 
 6. **Pawn start-row detection:** Uses `row === startRow` (1 for White, 6 for Black) — not a `hasMoved` flag. A resurrected Pawn placed at row 1 would still get a double-step option.
 
-7. **GhoulKing raise is "free":** Per design intent, raising a NecroPawn should not end the GhoulKing's turn. In practice it does because of the deselect bug.
+7. **GhoulKing raise is "free":** Per design intent, raising a NecroPawn does not end the GhoulKing's turn.
 
 8. **Portal shared piece storage:** ALL same-color Portals share `pieceLoaded`. This is intentional — it represents cross-board teleportation, where any Portal acts as an exit.
 
@@ -685,31 +684,31 @@ Every piece object in the `pieces()` array has these fields:
 
 ## Known Bugs (from original codebase)
 
-Bugs are being fixed during the engine port. Fixed bugs are marked with ~~strikethrough~~.
+All bugs from the original codebase have been addressed during the engine port.
 
-| # | Status | Bug Description |
-|---|---|---|
-| 1 | Open | Stun clearing for White uses `for...in` — White stunned pieces never un-stun |
-| 2 | Open | Prowler second-move passes wrong piece to capture handler; double switchTurn |
-| 3 | Open | WizardTower ranged capture doesn't end turn |
-| 4 | Open | WizardKing standard capture doesn't end turn |
-| ~~5~~ | **Fixed** | ~~GhoulKing raise consumed turn — now a free action (no turn switch)~~ |
-| ~~6~~ | **Fixed** | ~~DeadLauncher launch targets showed all distance-3 squares — now only enemy-occupied~~ |
-| 7 | Open | Stone pieces can be un-stoned by opponent via Familiar click propagation |
-| 8 | Open | Necromancer resurrection doesn't clearly end turn |
-| 9 | Open | Portal eject doesn't end turn (may be intentional) |
-| 10 | Open | Howler gains nothing from capturing king-type pieces |
-| 11 | Open | QueenOfDomination ability can be reused (may be unintended) |
-| 12 | Open | No check/checkmate detection — king-capture win condition as placeholder |
-| 13 | Open | No pawn promotion |
-| 14 | Open | handleCapture called with null capturingPiece in some paths |
+| # | Status | Bug Description | Resolution |
+|---|---|---|---|
+| ~~1~~ | **Fixed** | ~~Stun clearing for White uses `for...in`~~ | `turnManager.ts` uses proper array `.map()` for both colors |
+| ~~2~~ | **Fixed** | ~~Prowler second-move passes wrong piece; double switchTurn~~ | `Prowler.ts` tracks pieceId correctly, single turn switch |
+| ~~3~~ | **Fixed** | ~~WizardTower ranged capture doesn't end turn~~ | `performRangedCapture` switches turn |
+| ~~4~~ | **Fixed** | ~~WizardKing standard capture doesn't end turn~~ | Standard captures go through `handleMove` which always switches turn |
+| ~~5~~ | **Fixed** | ~~GhoulKing raise consumed turn~~ | `performRaise` doesn't call switchTurn |
+| ~~6~~ | **Fixed** | ~~DeadLauncher launch showed all distance-3 squares~~ | `getLaunchTargets` filters to enemy-occupied only |
+| ~~7~~ | **Fixed** | ~~Stone pieces un-stoned by opponent~~ | `toggleStone` only callable by owning player |
+| ~~8~~ | **Fixed** | ~~Necromancer resurrection doesn't end turn~~ | Resurrection flows through `handleResurrectionAbility` which calls `switchTurn` |
+| ~~9~~ | **Documented** | ~~Portal eject doesn't end turn~~ | Intentional per design — `performEject` does not switch turn |
+| ~~10~~ | **Documented** | ~~Howler gains nothing from king-type captures~~ | Intentional — king-types are not in any ability category, `getAbilityGain` returns null |
+| ~~11~~ | **Documented** | ~~QueenOfDomination ability reusable~~ | Intentional — `pieceLoaded` clears after revert, allowing reuse |
+| ~~12~~ | **Fixed** | ~~No win condition~~ | King-capture detection in `checkWinCondition` (proper checkmate deferred to Phase 5) |
+| 13 | Open | No pawn promotion | Deferred — not yet implemented |
+| ~~14~~ | **Fixed** | ~~handleCapture called with null capturingPiece~~ | `captureHandler.ts` always receives `capturingPiece` parameter |
 
 ---
 
 ## Features Not Yet Implemented
 
 - **Board UI** — React Native Pressable grid (Phase 3)
-- **Win condition** — King-capture detection first, proper checkmate later (Phase 5)
+- **Checkmate / stalemate** — Only king-capture exists; proper check/checkmate deferred (Phase 5)
 - **Pawn promotion** — Pawns reaching the far rank do nothing
 - **Army builder / guild selection** — Choose guilds before game start (Phase 4)
 - **Multiplayer** — Supabase Realtime sync (Phase 6)
@@ -722,4 +721,4 @@ Bugs are being fixed during the engine port. Fixed bugs are marked with ~~strike
 
 ---
 
-*Last updated: 2026-05-26*
+*Last updated: 2026-05-26 — Phase 2 engine port complete, all bugs addressed*
