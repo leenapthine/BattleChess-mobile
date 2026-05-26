@@ -54,12 +54,18 @@ All game logic is pure TypeScript — no React, no signals, no mutation.
 
 ### Engine progress
 
-- Basic pieces: done (Pawn, Knight, Bishop, Rook, Queen, King)
-- Necro guild: done (NecroPawn, GhostKnight, Necromancer, DeadLauncher, GhoulKing, QueenOfBones)
-- Demon guild: not started
-- Beast guild: not started
-- Wizard guild: not started
-- Reducer integration: not started
+All 30 piece types ported. Reducer fully wired. Phase 2 complete.
+
+- Basic pieces: done
+- Necro guild: done
+- Demon guild: done
+- Beast guild: done
+- Wizard guild: done
+- Reducer integration: done
+- Action classifier: done
+- Capture handler (stone, QoD detonation, QoB revival): done
+- Turn manager (stun clearing fixed): done
+- King-capture win condition: done
 
 ### Game reference
 
