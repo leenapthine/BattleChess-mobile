@@ -44,19 +44,26 @@ src/
 │       ├── index.ts             # Registry mapping PieceType → module
 │       ├── Pawn.ts .. King.ts   # Basic pieces
 │       ├── NecroPawn.ts .. QueenOfBones.ts   # Necromancer guild
-│       ├── HellPawn.ts .. QueenOfDestruction.ts  # Demon guild (planned)
-│       ├── PawnHopper.ts .. QueenOfDomination.ts # Beast guild (planned)
-│       └── YoungWiz.ts .. QueenOfIllusions.ts    # Wizard guild (planned)
+│       ├── HellPawn.ts .. QueenOfDestruction.ts  # Demon guild
+│       ├── PawnHopper.ts .. QueenOfDomination.ts # Beast guild
+│       └── YoungWiz.ts .. QueenOfIllusions.ts    # Wizard guild
 ├── screens/                     # Each screen: Header/View/Hook split
-│   ├── Game/                    # Main game board (planned)
-│   └── ArmyBuilder/             # Guild/race selection (planned)
+│   ├── Game/                    # Main game board (fully wired)
+│   │   ├── index.tsx            # Composition root
+│   │   ├── useGame.ts           # Hook: reducer + classifyAction dispatch
+│   │   ├── GameView.tsx         # Board grid, highlights, win overlay
+│   │   └── GameHeader.tsx       # Turn label + ability-mode instructions
+│   └── ArmyBuilder/             # Guild/race selection (placeholder)
 ├── components/                  # Shared UI components
+│   └── CapturedPieces.tsx       # Graveyard sprite row
 ├── hooks/                       # Shared hooks
 ├── navigation/                  # Navigation config
 ├── types/
 │   └── game.ts                  # Core types: Piece, GameState, GameAction, etc.
 ├── utils/                       # Shared utility functions
 └── constants/                   # App-wide constants
+    ├── theme.ts                 # Board colors, highlight colors, app palette
+    └── sprites.ts               # Sprite map: getSprite(color, type) → ImageSource
 ```
 
 ---
@@ -68,7 +75,7 @@ src/
 | Framework | Expo (React Native) — iOS, Android, Web |
 | Language | TypeScript (strict mode) |
 | Game state | Pure reducer (`gameReducer.ts`) |
-| Board UI | React Native Pressable grid (planned) |
+| Board UI | React Native Pressable grid (8×8, White at bottom) |
 | Backend | Supabase (planned) |
 | Multiplayer | Supabase Realtime (planned) |
 
@@ -118,6 +125,7 @@ All game state is a single immutable `GameState` object managed by a pure reduce
 | Field | Type | Purpose |
 |---|---|---|
 | `pieces` | `Piece[]` | Full board state — single source of truth |
+| `capturedPieces` | `Piece[]` | Pieces removed from the board (for graveyard display) |
 | `currentTurn` | `'White' \| 'Black'` | Whose turn it is |
 | `selectedSquare` | `Square \| null` | The currently selected square |
 | `highlights` | `Highlight[]` | Tiles currently highlighted (move, capture, ability, preview) |
@@ -128,15 +136,20 @@ All game state is a single immutable `GameState` object managed by a pure reduce
 
 ## Rendering & Board
 
-The board is an 8×8 grid of React Native `Pressable` components (planned — not yet implemented). PixiJS has been dropped entirely.
+The board is an 8×8 grid of React Native `Pressable` components. White pieces render at the bottom of the screen. PixiJS has been dropped entirely.
 
-Sprites live in `assets/sprites/{Color}{Type}.png` — e.g. `WhiteNecromancer.png`, `BlackHellPawn.png`.
+Sprites live in `assets/sprites/{Color}{Type}.png` — e.g. `WhiteNecromancer.png`, `BlackHellPawn.png`. 60 PNGs total (30 piece types × 2 colors). Mapped via `src/constants/sprites.ts`.
 
-**Highlight types** (semantic, not hex colors):
-- `move` — valid empty square
-- `capture` — enemy-occupied square
-- `ability` — special ability target / friendly target
-- `preview` — opponent piece range (read-only)
+**Highlight indicators:**
+- `move` — centered semi-transparent dot on empty squares
+- `capture` — red ring border on enemy-occupied squares
+- `ability` — cyan ring border on special ability targets
+- `preview` — grey ring border on opponent piece range (read-only)
+
+**Additional UI:**
+- **Header** — shows current turn label and ability-mode instructions
+- **Win overlay** — appears on king capture with winner text and "New Game" button
+- **Captured pieces graveyard** — small sprite rows above (Black captures) and below (White captures) the board; tracked via `capturedPieces` on `GameState`
 
 ---
 
@@ -149,7 +162,7 @@ The old 17-handler click dispatch chain is replaced by a pure reducer pattern:
 3. `gameReducer(state, action) → newState` applies the action immutably
 4. React re-renders from the new state
 
-**Action types:** `SELECT_SQUARE`, `MOVE_PIECE`, `ABILITY_ACTION`, `END_TURN`, `DESELECT`
+**Action types:** `SELECT_SQUARE`, `MOVE_PIECE`, `ABILITY_ACTION`, `END_TURN`, `DESELECT`, `RESET_GAME`
 
 Multi-step abilities (sacrifice, resurrection, loading/launching, domination, etc.) are tracked by the `abilityMode` discriminated union on `GameState` rather than separate boolean flags.
 
@@ -651,14 +664,12 @@ Every piece object in the `pieces()` array has these fields:
 
 ## Highlight Color System
 
-| Color | Hex | Meaning |
+| Key | Visual | Meaning |
 |---|---|---|
-| Yellow | `0xffff00` | Standard valid move (empty square) |
-| Red | `0xff0000` | Capture or AoE target |
-| Cyan | `0x00ffff` | Special ability activation / friendly target / self-ability |
-| Grey (dark) | `0xe5e4e2` | Opponent's piece — shows move range when you click enemy units |
-| Grey (light) | `0xd3d3d3` | Opponent non-capture moves (PawnHopper, FrogKing context) |
-| Cyan (board) | `0x00CCFF` | Resurrection target tile (drawn differently from piece cyan) |
+| `move` | Semi-transparent dot | Standard valid move (empty square) |
+| `capture` | Red ring border | Enemy-occupied capture target |
+| `ability` | Cyan ring border | Special ability target (AoE blast zone, ranged boulder, friendly targets) |
+| `preview` | Grey ring border | Opponent's piece range (read-only, click does nothing) |
 
 ---
 
@@ -707,11 +718,10 @@ All bugs from the original codebase have been addressed during the engine port.
 
 ## Features Not Yet Implemented
 
-- **Board UI** — React Native Pressable grid (Phase 3)
-- **Checkmate / stalemate** — Only king-capture exists; proper check/checkmate deferred (Phase 5)
+- **Army builder / guild selection** — Choose guilds before game start (Phase 5)
+- **Checkmate / stalemate** — Only king-capture exists; proper check/checkmate deferred (Phase 6)
 - **Pawn promotion** — Pawns reaching the far rank do nothing
-- **Army builder / guild selection** — Choose guilds before game start (Phase 4)
-- **Multiplayer** — Supabase Realtime sync (Phase 6)
+- **Multiplayer** — Supabase Realtime sync (Phase 7)
 - **Turn timer** — No clock or time pressure
 - **Move history / undo** — No undo or replay
 - **AI opponent** — No single-player mode
@@ -721,4 +731,4 @@ All bugs from the original codebase have been addressed during the engine port.
 
 ---
 
-*Last updated: 2026-05-26 — Phase 2 engine port complete, all bugs addressed*
+*Last updated: 2026-05-26 — Phase 4 Game Screen complete, game playable on web*
