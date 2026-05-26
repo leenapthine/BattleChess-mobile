@@ -36,6 +36,7 @@ export function makePiece(
 export function makeState(pieces: Piece[], overrides?: Partial<GameState>): GameState {
   return {
     pieces,
+    capturedPieces: [],
     currentTurn: 'White',
     selectedSquare: null,
     highlights: [],

@@ -1,12 +1,11 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView, StyleSheet } from 'react-native';
+import { GameScreen } from '@/screens/Game';
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>BattleChess</Text>
-      <StatusBar style="light" />
-    </View>
+    <SafeAreaView style={styles.container}>
+      <GameScreen />
+    </SafeAreaView>
   );
 }
 
@@ -14,12 +13,5 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#1a1a2e',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    color: '#e0e0e0',
-    fontSize: 24,
-    fontWeight: 'bold',
   },
 });

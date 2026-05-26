@@ -67,6 +67,7 @@ function makeDemonBlack(): Piece[] {
 export function createInitialState(): GameState {
   return {
     pieces: [...makeNecroWhite(), ...makeDemonBlack()],
+    capturedPieces: [],
     currentTurn: 'White',
     selectedSquare: null,
     highlights: [],

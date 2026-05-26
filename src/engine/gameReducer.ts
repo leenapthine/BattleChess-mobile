@@ -15,24 +15,44 @@ import {
   handleBoulderAbility,
   handleSecondMoveAbility,
 } from '@/engine/helpers/abilityHandlers';
+import { createInitialState } from '@/engine/initialBoard';
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
+  if (action.type === 'RESET_GAME') return createInitialState();
   if (state.status.type === 'won') return state;
+
+  const prevPieces = state.pieces;
+  let next: GameState;
 
   switch (action.type) {
     case 'SELECT_SQUARE':
-      return handleSelect(state, action.square);
+      next = handleSelect(state, action.square);
+      break;
     case 'MOVE_PIECE':
-      return handleMove(state, action.from, action.to);
+      next = handleMove(state, action.from, action.to);
+      break;
     case 'ABILITY_ACTION':
-      return handleAbility(state, action.square);
+      next = handleAbility(state, action.square);
+      break;
     case 'END_TURN':
-      return checkWinCondition(switchTurn(state));
+      next = checkWinCondition(switchTurn(state));
+      break;
     case 'DESELECT':
-      return { ...state, selectedSquare: null, highlights: [], abilityMode: { type: 'none' } };
+      next = { ...state, selectedSquare: null, highlights: [], abilityMode: { type: 'none' } };
+      break;
     default:
       return state;
   }
+
+  if (next.pieces !== prevPieces) {
+    const nextIds = new Set(next.pieces.map(p => p.id));
+    const newCaptures = prevPieces.filter(p => !nextIds.has(p.id));
+    if (newCaptures.length > 0) {
+      next = { ...next, capturedPieces: [...next.capturedPieces, ...newCaptures] };
+    }
+  }
+
+  return next;
 }
 
 function handleSelect(state: GameState, square: Square): GameState {

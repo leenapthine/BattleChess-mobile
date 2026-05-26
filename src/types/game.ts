@@ -97,6 +97,7 @@ export type GameStatus =
 
 export type GameState = {
   pieces: Piece[];
+  capturedPieces: Piece[];
   currentTurn: Color;
   selectedSquare: Square | null;
   highlights: Highlight[];
@@ -109,4 +110,5 @@ export type GameAction =
   | { type: 'MOVE_PIECE'; from: Square; to: Square }
   | { type: 'ABILITY_ACTION'; square: Square }
   | { type: 'END_TURN' }
-  | { type: 'DESELECT' };
+  | { type: 'DESELECT' }
+  | { type: 'RESET_GAME' };
