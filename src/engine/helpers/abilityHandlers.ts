@@ -1,5 +1,5 @@
 import type { GameState, Square, Piece } from '@/types/game';
-import { getPieceAt, squaresEqual, updatePiece } from '@/engine/utils';
+import { getPieceAt, squaresEqual, updatePiece, generateId } from '@/engine/utils';
 import { getPieceModule } from '@/engine/pieces/index';
 import { handleCapture, checkWinCondition } from './captureHandler';
 import { switchTurn } from './turnManager';
@@ -99,7 +99,7 @@ export function handleResurrectionAbility(state: GameState, square: Square): Gam
   if (!isValid) return { ...state, abilityMode: { type: 'none' }, highlights: [] };
 
   const newPawn: Piece = {
-    id: crypto.randomUUID(),
+    id: generateId(),
     type: 'Pawn',
     color,
     row: square.row,

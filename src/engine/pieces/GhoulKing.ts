@@ -1,6 +1,6 @@
 import type { Piece, Highlight, Square, GameState, GainedAbilities } from '@/types/game';
 import { getKingMoves } from '@/engine/helpers/moveHelpers';
-import { getAllAdjacentSquares, isEmpty, updatePiece } from '@/engine/utils';
+import { getAllAdjacentSquares, isEmpty, updatePiece, generateId } from '@/engine/utils';
 
 export function getValidMoves(piece: Piece, pieces: Piece[]): Highlight[] {
   return getKingMoves(piece, pieces);
@@ -27,7 +27,7 @@ export function performRaise(
   state: GameState,
 ): GameState {
   const newNecroPawn: Piece = {
-    id: crypto.randomUUID(),
+    id: generateId(),
     type: 'NecroPawn',
     color: ghoulKing.color,
     row: target.row,

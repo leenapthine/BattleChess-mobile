@@ -1,6 +1,6 @@
 import type { Piece, Highlight, Square, GameState, GainedAbilities } from '@/types/game';
 import { getQueenMoves } from '@/engine/helpers/moveHelpers';
-import { getPieceAt, removePiece } from '@/engine/utils';
+import { getPieceAt, removePiece, generateId } from '@/engine/utils';
 
 const PAWN_TYPES = ['Pawn', 'NecroPawn', 'HellPawn', 'YoungWiz', 'PawnHopper'] as const;
 
@@ -43,7 +43,7 @@ export function performRevival(
   }
 
   const revivedQueen: Piece = {
-    id: crypto.randomUUID(),
+    id: generateId(),
     type: 'QueenOfBones',
     color: queenColor,
     row: spawnRow,

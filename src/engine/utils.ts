@@ -1,5 +1,10 @@
 import type { Piece, Square, Color, GameState } from '@/types/game';
 
+let nextGeneratedId = 100;
+export function generateId(): string {
+  return `gen-${nextGeneratedId++}-${Date.now()}`;
+}
+
 export function isInBounds(square: Square): boolean {
   return square.row >= 0 && square.row < 8 && square.col >= 0 && square.col < 8;
 }
