@@ -14,7 +14,7 @@ npm run web      # start in browser
 TypeScript strict mode enabled.
 
 ```bash
-npm test         # run Jest test suite (187 tests)
+npm test         # run Jest test suite (212 tests)
 ```
 
 ## Architecture
@@ -73,7 +73,7 @@ The board is an 8×8 grid of React Native `Pressable` squares. White renders at 
 
 ### Engine progress
 
-All 30 piece types ported. Reducer fully wired. Test suite passing (187 tests). Phases 2–4 complete. Verified on web (Playwright) and iOS simulator (iPhone 16, Expo Go).
+All 30 piece types ported. Reducer fully wired with piece-specific capture dispatch. Test suite passing (212 tests). Phases 2–4 complete. Verified on web (Playwright) and iOS simulator (iPhone 16, Expo Go).
 
 - Basic pieces: done
 - Necro guild: done
@@ -85,8 +85,10 @@ All 30 piece types ported. Reducer fully wired. Test suite passing (187 tests). 
 - Capture handler (stone, QoD detonation, QoB revival): done
 - Turn manager (stun clearing fixed): done
 - King-capture win condition: done
+- Piece-specific capture dispatch (WizardTower, HellKing, Prowler, Howler, HellPawn, YoungWiz): done
+- Ability target click routing (GhoulKing raise, QoI swap, QoD domination): done
 - Game screen UI (board, highlights, header, win overlay, graveyard): done
-- Test suite (12 suites, 187 tests): done
+- Test suite (13 suites, 212 tests): done
 - iOS simulator verification: done
 
 ### Game reference

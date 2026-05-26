@@ -1,11 +1,18 @@
 import type { GameState, GameAction, Square, Highlight } from '@/types/game';
-import { getPieceAt, updatePiece } from '@/engine/utils';
+import { getPieceAt, updatePiece, forwardDirection, removePiece, squaresEqual } from '@/engine/utils';
 import { getPieceModule } from '@/engine/pieces/index';
 import { handleCapture, checkWinCondition } from '@/engine/helpers/captureHandler';
 import { switchTurn, applyPostMoveEffects } from '@/engine/helpers/turnManager';
 import { applyHopCapture } from '@/engine/pieces/PawnHopper';
 import { getResurrectionTargets } from '@/engine/pieces/Necromancer';
-import { revertDomination } from '@/engine/pieces/QueenOfDomination';
+import { revertDomination, applyDomination } from '@/engine/pieces/QueenOfDomination';
+import { performSwap } from '@/engine/pieces/QueenOfIllusions';
+import { performRangedCapture } from '@/engine/pieces/WizardTower';
+import { performConvert } from '@/engine/pieces/HellKing';
+import { performCapture as performProwlerCapture } from '@/engine/pieces/Prowler';
+import { performCapture as performHowlerCapture } from '@/engine/pieces/Howler';
+import { performCapture as performHellPawnCapture } from '@/engine/pieces/HellPawn';
+import { performRaise } from '@/engine/pieces/GhoulKing';
 import {
   handleSelfClickAbility,
   handleSacrificeAbility,
@@ -85,6 +92,34 @@ function handleMove(state: GameState, from: Square, to: Square): GameState {
   let current = state;
 
   if (target && target.color !== piece.color) {
+    switch (piece.type) {
+      case 'WizardTower':
+        return checkWinCondition(performRangedCapture(piece, to, current));
+      case 'HellKing':
+        return checkWinCondition(performConvert(piece, to, current));
+      case 'Prowler':
+        return checkWinCondition(performProwlerCapture(piece, to, current));
+      case 'Howler':
+        return checkWinCondition(performHowlerCapture(piece, to, current));
+      case 'HellPawn':
+        return checkWinCondition(performHellPawnCapture(piece, to, current));
+      case 'YoungWiz': {
+        const dir = forwardDirection(piece.color);
+        if (to.row === piece.row + dir && to.col === piece.col) {
+          return checkWinCondition(switchTurn({
+            ...current,
+            pieces: removePiece(current.pieces, target.id),
+            selectedSquare: null,
+            highlights: [],
+            abilityMode: { type: 'none' },
+          }));
+        }
+        break;
+      }
+      default:
+        break;
+    }
+
     const result = handleCapture(target, piece, current);
     current = result.state;
 
@@ -146,7 +181,41 @@ function handleAbility(state: GameState, square: Square): GameState {
     case 'domination': return handleMove(state, state.selectedSquare!, square);
     case 'secondMove': return handleSecondMoveAbility(state, square);
     case 'sacrificeSelection': return state;
-    case 'none': return handleSelfClickAbility(state, square);
+    case 'none': return handleAbilityTargetClick(state, square);
     default: return state;
+  }
+}
+
+function handleAbilityTargetClick(state: GameState, square: Square): GameState {
+  const { selectedSquare } = state;
+  if (!selectedSquare) return state;
+
+  const selected = getPieceAt(selectedSquare, state.pieces);
+  if (!selected || selected.color !== state.currentTurn) return state;
+
+  if (squaresEqual(square, selectedSquare)) {
+    return handleSelfClickAbility(state, square);
+  }
+
+  const target = getPieceAt(square, state.pieces);
+
+  switch (selected.type) {
+    case 'GhoulKing':
+      if (!target && selected.raisesLeft > 0) {
+        return performRaise(selected, square, state);
+      }
+      return state;
+    case 'QueenOfIllusions':
+      if (target && target.color === selected.color) {
+        return checkWinCondition(performSwap(selected, target.id, state));
+      }
+      return state;
+    case 'QueenOfDomination':
+      if (target && target.color === selected.color && target.id !== selected.id) {
+        return applyDomination(selected, target.id, state);
+      }
+      return state;
+    default:
+      return handleSelfClickAbility(state, square);
   }
 }
