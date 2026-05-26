@@ -23,6 +23,12 @@ import * as BeastDruid from './BeastDruid';
 import * as BoulderThrower from './BoulderThrower';
 import * as FrogKing from './FrogKing';
 import * as QueenOfDomination from './QueenOfDomination';
+import * as YoungWiz from './YoungWiz';
+import * as Familiar from './Familiar';
+import * as WizardTower from './WizardTower';
+import * as Portal from './Portal';
+import * as WizardKing from './WizardKing';
+import * as QueenOfIllusions from './QueenOfIllusions';
 
 export type PieceModule = {
   getValidMoves: (piece: Piece, pieces: Piece[]) => Highlight[];
@@ -54,6 +60,12 @@ const registry: Partial<Record<PieceType, PieceModule>> = {
   BoulderThrower,
   FrogKing,
   QueenOfDomination,
+  YoungWiz,
+  Familiar,
+  WizardTower,
+  Portal,
+  WizardKing,
+  QueenOfIllusions,
 };
 
 export function getPieceModule(type: PieceType): PieceModule | undefined {
