@@ -11,6 +11,12 @@ import * as Necromancer from './Necromancer';
 import * as DeadLauncher from './DeadLauncher';
 import * as GhoulKing from './GhoulKing';
 import * as QueenOfBones from './QueenOfBones';
+import * as HellPawn from './HellPawn';
+import * as Prowler from './Prowler';
+import * as Howler from './Howler';
+import * as Beholder from './Beholder';
+import * as HellKing from './HellKing';
+import * as QueenOfDestruction from './QueenOfDestruction';
 
 export type PieceModule = {
   getValidMoves: (piece: Piece, pieces: Piece[]) => Highlight[];
@@ -30,6 +36,12 @@ const registry: Partial<Record<PieceType, PieceModule>> = {
   DeadLauncher,
   GhoulKing,
   QueenOfBones,
+  HellPawn,
+  Prowler,
+  Howler,
+  Beholder,
+  HellKing,
+  QueenOfDestruction,
 };
 
 export function getPieceModule(type: PieceType): PieceModule | undefined {
