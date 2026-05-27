@@ -29,7 +29,7 @@ export function GameHeader({ currentTurn, status, abilityMode }: Props) {
   return (
     <View style={styles.container}>
       <Text style={styles.turn}>{turnLabel}</Text>
-      {abilityLabel && <Text style={styles.ability}>{abilityLabel}</Text>}
+      <Text style={styles.ability}>{abilityLabel ?? ' '}</Text>
     </View>
   );
 }
