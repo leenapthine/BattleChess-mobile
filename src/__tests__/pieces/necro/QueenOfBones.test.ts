@@ -247,6 +247,46 @@ describe('QueenOfBones', () => {
     expect(s1.abilityMode.type).toBe('sacrificeSelection');
   });
 
+  it('QoD detonation killing QoB triggers revival', () => {
+    const qod = makePiece('QueenOfDestruction', 'Black', 4, 4);
+    const qob = makePiece('QueenOfBones', 'White', 4, 5);
+    const attacker = makePiece('Rook', 'White', 4, 0);
+    const p1 = makePiece('NecroPawn', 'White', 1, 0);
+    const p2 = makePiece('NecroPawn', 'White', 1, 1);
+    const wk = makePiece('King', 'White', 0, 4);
+    const bk = makePiece('King', 'Black', 7, 4);
+    const state = makeState([qod, qob, attacker, p1, p2, wk, bk], {
+      selectedSquare: { row: 4, col: 0 },
+      highlights: [{ row: 4, col: 4, color: 'capture' }],
+    });
+
+    const s1 = tap(state, { row: 4, col: 4 });
+    expect(s1.pieces.find(p => p.id === qob.id)).toBeUndefined();
+    expect(s1.abilityMode.type).toBe('sacrificeSelection');
+  });
+
+  it('QoD detonation killing QoB allows full revival flow', () => {
+    const qod = makePiece('QueenOfDestruction', 'Black', 4, 4);
+    const qob = makePiece('QueenOfBones', 'White', 4, 5);
+    const attacker = makePiece('Rook', 'White', 4, 0);
+    const p1 = makePiece('NecroPawn', 'White', 1, 0);
+    const p2 = makePiece('NecroPawn', 'White', 1, 1);
+    const wk = makePiece('King', 'White', 0, 4);
+    const bk = makePiece('King', 'Black', 7, 4);
+    const state = makeState([qod, qob, attacker, p1, p2, wk, bk], {
+      selectedSquare: { row: 4, col: 0 },
+      highlights: [{ row: 4, col: 4, color: 'capture' }],
+    });
+
+    const s1 = tap(state, { row: 4, col: 4 });
+    const s2 = tap(s1, { row: 1, col: 0 });
+    const s3 = tap(s2, { row: 1, col: 1 });
+    const revived = s3.pieces.find(p => p.type === 'QueenOfBones');
+    expect(revived).toBeDefined();
+    expect(revived!.row).toBe(0);
+    expect(revived!.col).toBe(3);
+  });
+
   it('HellKing convert does NOT trigger revival', () => {
     const qob = makePiece('QueenOfBones', 'White', 3, 4);
     const hk = makePiece('HellKing', 'Black', 4, 4);

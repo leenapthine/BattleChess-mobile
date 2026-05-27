@@ -155,8 +155,13 @@ function handleMove(state: GameState, from: Square, to: Square): GameState {
 
     if (result.triggerRevival) {
       const movedPieces = updatePiece(current.pieces, piece.id, { row: to.row, col: to.col, hasMoved: true });
-      const revivalState = checkQoBRevival(target, { ...current, pieces: movedPieces }, null);
-      if (revivalState) return revivalState;
+      const deadQoB = target.type === 'QueenOfBones'
+        ? target
+        : state.pieces.find(p => p.type === 'QueenOfBones' && !movedPieces.find(mp => mp.id === p.id));
+      if (deadQoB) {
+        const revivalState = checkQoBRevival(deadQoB, { ...current, pieces: movedPieces }, null);
+        if (revivalState) return revivalState;
+      }
     }
   }
 
