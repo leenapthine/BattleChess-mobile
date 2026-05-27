@@ -6,13 +6,14 @@ import { getSprite } from '@/constants/sprites';
 type Props = {
   pieces: Piece[];
   selectedSquare: Square | null;
+  selectedCanActivate: boolean;
   highlights: Highlight[];
   status: GameStatus;
   onSquarePress: (square: Square) => void;
   onNewGame: () => void;
 };
 
-export function GameView({ pieces, selectedSquare, highlights, status, onSquarePress, onNewGame }: Props) {
+export function GameView({ pieces, selectedSquare, selectedCanActivate, highlights, status, onSquarePress, onNewGame }: Props) {
   const { width } = useWindowDimensions();
   const boardSize = Math.min(width - 16, 400);
   const tileSize = boardSize / 8;
@@ -48,7 +49,7 @@ export function GameView({ pieces, selectedSquare, highlights, status, onSquareP
                   <View
                     style={[
                       styles.highlightBorder,
-                      { borderColor: BOARD.selected },
+                      { borderColor: selectedCanActivate ? HIGHLIGHT.ability : BOARD.selected },
                     ]}
                   />
                 )}

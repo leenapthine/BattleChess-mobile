@@ -12,6 +12,7 @@ export function GameScreen() {
     capturedPieces,
     currentTurn,
     selectedSquare,
+    selectedCanActivate,
     highlights,
     abilityMode,
     status,
@@ -35,6 +36,7 @@ export function GameScreen() {
         <GameView
           pieces={pieces}
           selectedSquare={selectedSquare}
+          selectedCanActivate={selectedCanActivate}
           highlights={highlights}
           status={status}
           onSquarePress={onSquarePress}
