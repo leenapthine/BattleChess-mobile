@@ -35,7 +35,7 @@ export function getSlidingMoves(
     while (isInBounds(current)) {
       const occupant = getPieceAt(current, pieces);
       if (occupant) {
-        if (occupant.color !== piece.color) {
+        if (occupant.color !== piece.color && !occupant.isStone) {
           highlights.push({ ...current, color: 'capture' });
         }
         break;
@@ -68,7 +68,7 @@ export function getStepMoves(
     const occupant = getPieceAt(target, pieces);
     if (!occupant) {
       highlights.push({ ...target, color: 'move' });
-    } else if (occupant.color !== piece.color) {
+    } else if (occupant.color !== piece.color && !occupant.isStone) {
       highlights.push({ ...target, color: 'capture' });
     }
   }

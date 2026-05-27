@@ -6,6 +6,7 @@ type Props = {
   currentTurn: Color;
   status: GameStatus;
   abilityMode: AbilityMode;
+  flashMessage: string | null;
 };
 
 const ABILITY_LABELS: Record<string, string> = {
@@ -19,12 +20,12 @@ const ABILITY_LABELS: Record<string, string> = {
   sacrificeSelection: 'Select a friendly piece to sacrifice',
 };
 
-export function GameHeader({ currentTurn, status, abilityMode }: Props) {
+export function GameHeader({ currentTurn, status, abilityMode, flashMessage }: Props) {
   const turnLabel = status.type === 'won'
     ? `${status.winner} wins!`
     : `${currentTurn}'s turn`;
 
-  const abilityLabel = ABILITY_LABELS[abilityMode.type] ?? null;
+  const abilityLabel = flashMessage ?? ABILITY_LABELS[abilityMode.type] ?? null;
 
   return (
     <View style={styles.container}>

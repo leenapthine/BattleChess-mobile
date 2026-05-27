@@ -1,4 +1,4 @@
-import { useReducer, useCallback, useMemo } from 'react';
+import { useReducer, useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import type { Piece, Square } from '@/types/game';
 import { gameReducer } from '@/engine/gameReducer';
 import { classifyAction } from '@/engine/helpers/classifyAction';
@@ -32,6 +32,22 @@ export function useGame() {
     return !!piece && piece.color === state.currentTurn && SELF_CLICK_TYPES.includes(piece.type);
   }, [state.selectedSquare, state.abilityMode, state.pieces, state.currentTurn]);
 
+  const [flashMessage, setFlashMessage] = useState<string | null>(null);
+  const prevPiecesRef = useRef(state.pieces);
+
+  useEffect(() => {
+    const prev = prevPiecesRef.current;
+    prevPiecesRef.current = state.pieces;
+    const newStone = state.pieces.find(
+      p => p.type === 'Familiar' && p.isStone && !prev.find(pp => pp.id === p.id && pp.isStone),
+    );
+    if (newStone) {
+      setFlashMessage('Familiar turned to stone!');
+      const timer = setTimeout(() => setFlashMessage(null), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [state.pieces]);
+
   return {
     pieces: state.pieces,
     capturedPieces: state.capturedPieces,
@@ -41,6 +57,7 @@ export function useGame() {
     highlights: state.highlights,
     abilityMode: state.abilityMode,
     status: state.status,
+    flashMessage,
     onSquarePress,
     onNewGame,
   };

@@ -16,6 +16,7 @@ export function GameScreen() {
     highlights,
     abilityMode,
     status,
+    flashMessage,
     onSquarePress,
     onNewGame,
   } = useGame();
@@ -30,6 +31,7 @@ export function GameScreen() {
         currentTurn={currentTurn}
         status={status}
         abilityMode={abilityMode}
+        flashMessage={flashMessage}
       />
       <View style={styles.boardContainer}>
         <CapturedPieces pieces={capturedPieces} color="Black" spriteSize={spriteSize} />
