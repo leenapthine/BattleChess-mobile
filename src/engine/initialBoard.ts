@@ -32,41 +32,41 @@ function makePiece(
   };
 }
 
-function makeNecroWhite(): Piece[] {
+function makeBeastWhite(): Piece[] {
   return [
-    makePiece(1, 'DeadLauncher', 'White', 0, 0),
-    makePiece(2, 'GhostKnight', 'White', 0, 1),
-    makePiece(3, 'Necromancer', 'White', 0, 2),
-    makePiece(4, 'QueenOfBones', 'White', 0, 3),
-    makePiece(5, 'GhoulKing', 'White', 0, 4, { raisesLeft: 1 }),
-    makePiece(6, 'Necromancer', 'White', 0, 5),
-    makePiece(7, 'GhostKnight', 'White', 0, 6),
-    makePiece(8, 'DeadLauncher', 'White', 0, 7),
+    makePiece(1, 'BoulderThrower', 'White', 0, 0),
+    makePiece(2, 'BeastKnight', 'White', 0, 1),
+    makePiece(3, 'BeastDruid', 'White', 0, 2),
+    makePiece(4, 'QueenOfDomination', 'White', 0, 3),
+    makePiece(5, 'FrogKing', 'White', 0, 4),
+    makePiece(6, 'BeastDruid', 'White', 0, 5),
+    makePiece(7, 'BeastKnight', 'White', 0, 6),
+    makePiece(8, 'BoulderThrower', 'White', 0, 7),
     ...Array.from({ length: 8 }, (_, i) =>
-      makePiece(9 + i, 'NecroPawn', 'White', 1, i),
+      makePiece(9 + i, 'PawnHopper', 'White', 1, i),
     ),
   ];
 }
 
-function makeDemonBlack(): Piece[] {
+function makeWizardBlack(): Piece[] {
   return [
-    makePiece(17, 'Beholder', 'Black', 7, 0),
-    makePiece(18, 'Prowler', 'Black', 7, 1),
-    makePiece(19, 'Howler', 'Black', 7, 2),
-    makePiece(20, 'QueenOfDestruction', 'Black', 7, 3),
-    makePiece(21, 'HellKing', 'Black', 7, 4),
-    makePiece(22, 'Howler', 'Black', 7, 5),
-    makePiece(23, 'Prowler', 'Black', 7, 6),
-    makePiece(24, 'Beholder', 'Black', 7, 7),
+    makePiece(17, 'Portal', 'Black', 7, 0),
+    makePiece(18, 'Familiar', 'Black', 7, 1),
+    makePiece(19, 'WizardTower', 'Black', 7, 2),
+    makePiece(20, 'QueenOfIllusions', 'Black', 7, 3),
+    makePiece(21, 'WizardKing', 'Black', 7, 4),
+    makePiece(22, 'WizardTower', 'Black', 7, 5),
+    makePiece(23, 'Familiar', 'Black', 7, 6),
+    makePiece(24, 'Portal', 'Black', 7, 7),
     ...Array.from({ length: 8 }, (_, i) =>
-      makePiece(25 + i, 'HellPawn', 'Black', 6, i),
+      makePiece(25 + i, 'YoungWiz', 'Black', 6, i),
     ),
   ];
 }
 
 export function createInitialState(): GameState {
   return {
-    pieces: [...makeNecroWhite(), ...makeDemonBlack()],
+    pieces: [...makeBeastWhite(), ...makeWizardBlack()],
     capturedPieces: [],
     currentTurn: 'White',
     selectedSquare: null,

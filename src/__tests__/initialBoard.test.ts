@@ -24,11 +24,12 @@ describe('initialBoard', () => {
     expect(blacks.every(p => p.row >= 6)).toBe(true);
   });
 
-  it('GhoulKing starts with raisesLeft: 1', () => {
+  it('king piece exists for each color', () => {
     const state = createInitialState();
-    const gk = state.pieces.find(p => p.type === 'GhoulKing');
-    expect(gk).toBeDefined();
-    expect(gk!.raisesLeft).toBe(1);
+    const whiteKing = state.pieces.find(p => p.color === 'White' && p.type.includes('King'));
+    const blackKing = state.pieces.find(p => p.color === 'Black' && p.type.includes('King'));
+    expect(whiteKing).toBeDefined();
+    expect(blackKing).toBeDefined();
   });
 
   it('all pieces start with default flags', () => {

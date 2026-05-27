@@ -10,10 +10,9 @@ type Props = {
 
 export function CapturedPieces({ pieces, color, spriteSize }: Props) {
   const captured = pieces.filter(p => p.color === color);
-  if (captured.length === 0) return null;
 
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, { height: spriteSize + 8 }]}>
       {captured.map((p, i) => (
         <Image
           key={`${p.id}-${i}`}
@@ -32,6 +31,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     paddingHorizontal: 8,
     paddingVertical: 4,
-    minHeight: 28,
+    overflow: 'hidden',
   },
 });
