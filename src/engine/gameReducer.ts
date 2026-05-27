@@ -1,12 +1,12 @@
 import type { GameState, GameAction, Square, Highlight } from '@/types/game';
 import { getPieceAt, updatePiece, forwardDirection, removePiece, squaresEqual } from '@/engine/utils';
 import { getPieceModule } from '@/engine/pieces/index';
-import { handleCapture, checkWinCondition } from '@/engine/helpers/captureHandler';
+import { handleCapture, checkWinCondition, checkQoBRevival } from '@/engine/helpers/captureHandler';
 import { switchTurn, applyPostMoveEffects } from '@/engine/helpers/turnManager';
 import { applyHopCapture } from '@/engine/pieces/PawnHopper';
 import { getResurrectionTargets } from '@/engine/pieces/Necromancer';
 import { revertDomination, applyDomination } from '@/engine/pieces/QueenOfDomination';
-import { getEligibleSacrifices, performRevival, canRevive as canReviveQoB } from '@/engine/pieces/QueenOfBones';
+import { performRevival } from '@/engine/pieces/QueenOfBones';
 import { performSwap } from '@/engine/pieces/QueenOfIllusions';
 import { performRangedCapture } from '@/engine/pieces/WizardTower';
 import { performConvert } from '@/engine/pieces/HellKing';
@@ -98,8 +98,10 @@ function handleMove(state: GameState, from: Square, to: Square): GameState {
 
   if (target && target.color !== piece.color) {
     switch (piece.type) {
-      case 'WizardTower':
-        return checkWinCondition(performRangedCapture(piece, to, current));
+      case 'WizardTower': {
+        const wtResult = performRangedCapture(piece, to, current);
+        return maybeQoBRevival(target, wtResult, null);
+      }
       case 'HellKing':
         return checkWinCondition(performConvert(piece, to, current));
       case 'Prowler': {
@@ -118,13 +120,14 @@ function handleMove(state: GameState, from: Square, to: Square): GameState {
       case 'YoungWiz': {
         const dir = forwardDirection(piece.color);
         if (to.row === piece.row + dir && to.col === piece.col) {
-          return checkWinCondition(switchTurn({
+          const zapResult = switchTurn({
             ...current,
             pieces: removePiece(current.pieces, target.id),
             selectedSquare: null,
             highlights: [],
             abilityMode: { type: 'none' },
-          }));
+          });
+          return maybeQoBRevival(target, zapResult, null);
         }
         break;
       }
@@ -150,14 +153,8 @@ function handleMove(state: GameState, from: Square, to: Square): GameState {
 
     if (result.triggerRevival) {
       const movedPieces = updatePiece(current.pieces, piece.id, { row: to.row, col: to.col, hasMoved: true });
-      const eligible = getEligibleSacrifices(target.color, movedPieces);
-      return {
-        ...current,
-        pieces: movedPieces,
-        selectedSquare: null,
-        highlights: eligible.map(p => ({ row: p.row, col: p.col, color: 'ability' as const })),
-        abilityMode: { type: 'sacrificeSelection', queenColor: target.color, sacrificeIds: [], pendingSecondMove: null },
-      };
+      const revivalState = checkQoBRevival(target, { ...current, pieces: movedPieces }, null);
+      if (revivalState) return revivalState;
     }
   }
 
@@ -237,16 +234,7 @@ function handleAbilityTargetClick(state: GameState, square: Square): GameState {
 }
 
 function maybeQoBRevival(captured: { type: string; color: string }, result: GameState, pendingSecondMove: string | null): GameState {
-  if (captured.type === 'QueenOfBones' && canReviveQoB(captured.color as 'White' | 'Black', result.pieces)) {
-    const eligible = getEligibleSacrifices(captured.color as 'White' | 'Black', result.pieces);
-    return {
-      ...result,
-      selectedSquare: null,
-      highlights: eligible.map(p => ({ row: p.row, col: p.col, color: 'ability' as const })),
-      abilityMode: { type: 'sacrificeSelection', queenColor: captured.color as 'White' | 'Black', sacrificeIds: [], pendingSecondMove },
-    };
-  }
-  return checkWinCondition(result);
+  return checkQoBRevival(captured, result, pendingSecondMove) ?? checkWinCondition(result);
 }
 
 function handleSacrificeSelection(state: GameState, square: Square): GameState {

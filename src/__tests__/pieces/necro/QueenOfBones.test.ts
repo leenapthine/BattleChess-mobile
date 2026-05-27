@@ -155,4 +155,89 @@ describe('QueenOfBones', () => {
     const s2 = tap(s1, { row: 7, col: 7 });
     expect(s2.abilityMode.type).toBe('sacrificeSelection');
   });
+
+  // --- Revival from all kill paths ---
+
+  it('WizardTower ranged capture triggers revival', () => {
+    const qob = makePiece('QueenOfBones', 'White', 3, 3);
+    const wt = makePiece('WizardTower', 'Black', 0, 0);
+    const p1 = makePiece('NecroPawn', 'White', 1, 0);
+    const p2 = makePiece('NecroPawn', 'White', 1, 1);
+    const wk = makePiece('King', 'White', 0, 4);
+    const bk = makePiece('King', 'Black', 7, 4);
+    const state = makeState([qob, wt, p1, p2, wk, bk], {
+      currentTurn: 'Black',
+      selectedSquare: { row: 0, col: 0 },
+      highlights: [{ row: 3, col: 3, color: 'capture' }],
+    });
+
+    const s1 = tap(state, { row: 3, col: 3 });
+    expect(s1.abilityMode.type).toBe('sacrificeSelection');
+  });
+
+  it('YoungWiz zap triggers revival', () => {
+    const qob = makePiece('QueenOfBones', 'Black', 4, 4);
+    const yw = makePiece('YoungWiz', 'White', 3, 4);
+    const p1 = makePiece('HellPawn', 'Black', 6, 0);
+    const p2 = makePiece('HellPawn', 'Black', 6, 1);
+    const wk = makePiece('King', 'White', 0, 4);
+    const bk = makePiece('King', 'Black', 7, 4);
+    const state = makeState([qob, yw, p1, p2, wk, bk], {
+      selectedSquare: { row: 3, col: 4 },
+      highlights: [{ row: 4, col: 4, color: 'capture' }],
+    });
+
+    const s1 = tap(state, { row: 4, col: 4 });
+    expect(s1.abilityMode.type).toBe('sacrificeSelection');
+  });
+
+  it('Boulder throw triggers revival', () => {
+    const qob = makePiece('QueenOfBones', 'White', 4, 7);
+    const bt = makePiece('BoulderThrower', 'Black', 4, 4);
+    const p1 = makePiece('NecroPawn', 'White', 1, 0);
+    const p2 = makePiece('NecroPawn', 'White', 1, 1);
+    const wk = makePiece('King', 'White', 0, 4);
+    const bk = makePiece('King', 'Black', 7, 4);
+    const state = makeState([qob, bt, p1, p2, wk, bk], {
+      currentTurn: 'Black',
+      abilityMode: { type: 'boulder', pieceId: bt.id },
+      highlights: [{ row: 4, col: 7, color: 'capture' }],
+    });
+
+    const s1 = tap(state, { row: 4, col: 7 });
+    expect(s1.abilityMode.type).toBe('sacrificeSelection');
+  });
+
+  it('NecroPawn sacrifice killing QoB triggers revival', () => {
+    const qob = makePiece('QueenOfBones', 'White', 4, 5);
+    const np = makePiece('NecroPawn', 'Black', 4, 4);
+    const p1 = makePiece('NecroPawn', 'White', 1, 0);
+    const p2 = makePiece('NecroPawn', 'White', 1, 1);
+    const wk = makePiece('King', 'White', 0, 4);
+    const bk = makePiece('King', 'Black', 7, 4);
+    const state = makeState([qob, np, p1, p2, wk, bk], {
+      currentTurn: 'Black',
+      abilityMode: { type: 'sacrifice', pieceId: np.id, armed: true },
+    });
+
+    const s1 = tap(state, { row: 4, col: 4 });
+    expect(s1.abilityMode.type).toBe('sacrificeSelection');
+  });
+
+  it('HellKing convert does NOT trigger revival', () => {
+    const qob = makePiece('QueenOfBones', 'White', 3, 4);
+    const hk = makePiece('HellKing', 'Black', 4, 4);
+    const p1 = makePiece('NecroPawn', 'White', 1, 0);
+    const p2 = makePiece('NecroPawn', 'White', 1, 1);
+    const state = makeState([qob, hk, p1, p2], {
+      currentTurn: 'Black',
+      selectedSquare: { row: 4, col: 4 },
+      highlights: [{ row: 3, col: 4, color: 'capture' }],
+    });
+
+    const s1 = tap(state, { row: 3, col: 4 });
+    expect(s1.abilityMode.type).toBe('none');
+    const converted = s1.pieces.find(p => p.id === qob.id)!;
+    expect(converted.color).toBe('Black');
+  });
 });

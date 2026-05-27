@@ -1,7 +1,7 @@
 import type { GameState, Square, Piece } from '@/types/game';
 import { getPieceAt, squaresEqual, updatePiece, generateId } from '@/engine/utils';
 import { getPieceModule } from '@/engine/pieces/index';
-import { handleCapture, checkWinCondition } from './captureHandler';
+import { handleCapture, checkWinCondition, checkQoBRevival } from './captureHandler';
 import { switchTurn } from './turnManager';
 import { performSacrifice } from '@/engine/pieces/NecroPawn';
 import { getAbilityTargets as getGhoulKingTargets } from '@/engine/pieces/GhoulKing';
@@ -85,7 +85,15 @@ export function handleSacrificeAbility(state: GameState, square: Square): GameSt
   if (!piece) return state;
 
   if (squaresEqual(square, { row: piece.row, col: piece.col })) {
-    return checkWinCondition(performSacrifice(piece, state));
+    const beforeIds = new Set(state.pieces.map(p => p.id));
+    const sacrificeResult = performSacrifice(piece, state);
+    const killed = state.pieces.filter(p => !sacrificeResult.pieces.find(sp => sp.id === p.id));
+    const deadQoB = killed.find(p => p.type === 'QueenOfBones');
+    if (deadQoB) {
+      const revival = checkQoBRevival(deadQoB, sacrificeResult, null);
+      if (revival) return revival;
+    }
+    return checkWinCondition(sacrificeResult);
   }
 
   return { ...state, selectedSquare: null, highlights: [], abilityMode: { type: 'none' } };
@@ -168,9 +176,10 @@ export function handleLaunchAbility(state: GameState, square: Square): GameState
     }
     const result = handleCapture(target, launcher, state);
     const updated = updatePiece(result.state.pieces, launcher.id, { pawnLoaded: false });
-    return checkWinCondition(switchTurn({
+    const afterLaunch = switchTurn({
       ...result.state, pieces: updated, selectedSquare: null, highlights: [], abilityMode: { type: 'none' },
-    }));
+    });
+    return checkQoBRevival(target, afterLaunch, null) ?? checkWinCondition(afterLaunch);
   }
 
   if (launcher.type === 'Portal') {
@@ -191,9 +200,10 @@ export function handleBoulderAbility(state: GameState, square: Square): GameStat
   }
 
   const result = handleCapture(target, thrower, state);
-  return checkWinCondition(switchTurn({
+  const afterBoulder = switchTurn({
     ...result.state, selectedSquare: null, highlights: [], abilityMode: { type: 'none' },
-  }));
+  });
+  return checkQoBRevival(target, afterBoulder, null) ?? checkWinCondition(afterBoulder);
 }
 
 export function handleSecondMoveAbility(state: GameState, square: Square): GameState {
