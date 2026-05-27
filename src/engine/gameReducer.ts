@@ -78,7 +78,11 @@ function handleSelect(state: GameState, square: Square): GameState {
     ? moves
     : moves.map(h => ({ ...h, color: 'preview' as const }));
 
-  if (isOwn && mod.getAbilityTargets) {
+  const selfClickTypes = [
+    'NecroPawn', 'GhoulKing', 'DeadLauncher',
+    'Beholder', 'BoulderThrower', 'Familiar', 'Portal',
+  ];
+  if (isOwn && mod.getAbilityTargets && !selfClickTypes.includes(piece.type)) {
     highlights.push(...mod.getAbilityTargets(piece, state.pieces));
   }
 
