@@ -1,6 +1,7 @@
 import type { Piece, Highlight, GameState, PieceType } from '@/types/game';
 import { getQueenMoves } from '@/engine/helpers/moveHelpers';
 import { updatePiece } from '@/engine/utils';
+import { opponentColor } from '@/engine/pieceTraits';
 
 const SWAP_TYPES: PieceType[] = ['Pawn', 'NecroPawn', 'HellPawn', 'YoungWiz', 'PawnHopper'];
 
@@ -42,6 +43,6 @@ export function performSwap(
     selectedSquare: null,
     highlights: [],
     abilityMode: { type: 'none' },
-    currentTurn: state.currentTurn === 'White' ? 'Black' : 'White',
+    currentTurn: opponentColor(state.currentTurn),
   };
 }

@@ -1,6 +1,7 @@
 import type { Piece, Highlight, GameState } from '@/types/game';
 import { getKnightMoves } from '@/engine/helpers/moveHelpers';
 import { getPieceAt, removePiece, updatePiece } from '@/engine/utils';
+import { opponentColor } from '@/engine/pieceTraits';
 
 export function getValidMoves(piece: Piece, pieces: Piece[]): Highlight[] {
   return getKnightMoves(piece, pieces);
@@ -35,7 +36,7 @@ export function performCapture(
       selectedSquare: null,
       highlights: [],
       abilityMode: { type: 'none' },
-      currentTurn: state.currentTurn === 'White' ? 'Black' : 'White',
+      currentTurn: opponentColor(state.currentTurn),
     };
   }
 
@@ -71,7 +72,7 @@ export function performSecondMove(
     selectedSquare: null,
     highlights: [],
     abilityMode: { type: 'none' },
-    currentTurn: state.currentTurn === 'White' ? 'Black' : 'White',
+    currentTurn: opponentColor(state.currentTurn),
   };
 }
 
@@ -101,7 +102,7 @@ function handleQoDCapture(
     selectedSquare: null,
     highlights: [],
     abilityMode: { type: 'none' },
-    currentTurn: state.currentTurn === 'White' ? 'Black' : 'White',
+    currentTurn: opponentColor(state.currentTurn),
   };
 }
 

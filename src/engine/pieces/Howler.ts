@@ -8,6 +8,7 @@ import {
 } from '@/engine/helpers/moveHelpers';
 import { getValidMoves as getPawnMoves } from './Pawn';
 import { getPieceAt, removePiece, updatePiece } from '@/engine/utils';
+import { opponentColor } from '@/engine/pieceTraits';
 
 const KNIGHT_TYPES: PieceType[] = ['Knight', 'BeastKnight', 'GhostKnight', 'Prowler', 'Familiar'];
 const ROOK_TYPES: PieceType[] = ['Rook', 'Beholder', 'BoulderThrower', 'DeadLauncher', 'Portal'];
@@ -69,7 +70,7 @@ export function performCapture(
     selectedSquare: null,
     highlights: [],
     abilityMode: { type: 'none' },
-    currentTurn: state.currentTurn === 'White' ? 'Black' : 'White',
+    currentTurn: opponentColor(state.currentTurn),
   };
 }
 

@@ -1,5 +1,6 @@
-import type { GameState, GameAction, Square, Piece } from '@/types/game';
+import type { GameState, GameAction, Square } from '@/types/game';
 import { getPieceAt, squaresEqual } from '@/engine/utils';
+import { hasSelfClickAbility } from '@/engine/pieceTraits';
 
 export function classifyAction(
   square: Square,
@@ -15,7 +16,7 @@ export function classifyAction(
   if (selectedSquare) {
     if (squaresEqual(square, selectedSquare)) {
       const piece = getPieceAt(selectedSquare, pieces);
-      if (piece && hasAbilityOnSelfClick(piece)) {
+      if (piece && hasSelfClickAbility(piece.type)) {
         return { type: 'ABILITY_ACTION', square };
       }
       return { type: 'DESELECT' };
@@ -51,16 +52,3 @@ export function classifyAction(
   return { type: 'DESELECT' };
 }
 
-function hasAbilityOnSelfClick(piece: Piece): boolean {
-  const selfClickTypes = [
-    'NecroPawn',
-    'GhoulKing',
-    'DeadLauncher',
-    'Beholder',
-    'BoulderThrower',
-    'Familiar',
-    'Portal',
-    'WizardKing',
-  ];
-  return selfClickTypes.includes(piece.type);
-}

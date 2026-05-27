@@ -1,6 +1,7 @@
 import type { Piece, Highlight, GameState } from '@/types/game';
 import { getKingMoves } from '@/engine/helpers/moveHelpers';
 import { getPieceAt, updatePiece } from '@/engine/utils';
+import { opponentColor } from '@/engine/pieceTraits';
 
 export function getValidMoves(piece: Piece, pieces: Piece[]): Highlight[] {
   return getKingMoves(piece, pieces);
@@ -24,6 +25,6 @@ export function performConvert(
     selectedSquare: null,
     highlights: [],
     abilityMode: { type: 'none' },
-    currentTurn: state.currentTurn === 'White' ? 'Black' : 'White',
+    currentTurn: opponentColor(state.currentTurn),
   };
 }

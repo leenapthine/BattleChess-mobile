@@ -1,19 +1,12 @@
 import type { GameState, GameAction, Square, Highlight } from '@/types/game';
-import { getPieceAt, updatePiece, forwardDirection, removePiece, squaresEqual } from '@/engine/utils';
+import { getPieceAt, updatePiece } from '@/engine/utils';
 import { getPieceModule } from '@/engine/pieces/index';
 import { handleCapture, checkWinCondition, checkQoBRevival } from '@/engine/helpers/captureHandler';
 import { switchTurn, applyPostMoveEffects } from '@/engine/helpers/turnManager';
+import { dispatchPieceCapture } from '@/engine/helpers/captureDispatch';
 import { applyHopCapture } from '@/engine/pieces/PawnHopper';
 import { getResurrectionTargets } from '@/engine/pieces/Necromancer';
-import { revertDomination, applyDomination } from '@/engine/pieces/QueenOfDomination';
-import { performRevival } from '@/engine/pieces/QueenOfBones';
-import { performSwap } from '@/engine/pieces/QueenOfIllusions';
-import { performRangedCapture } from '@/engine/pieces/WizardTower';
-import { performConvert } from '@/engine/pieces/HellKing';
-import { performCapture as performProwlerCapture } from '@/engine/pieces/Prowler';
-import { performCapture as performHowlerCapture } from '@/engine/pieces/Howler';
-import { performCapture as performHellPawnCapture } from '@/engine/pieces/HellPawn';
-import { performRaise } from '@/engine/pieces/GhoulKing';
+import { revertDomination } from '@/engine/pieces/QueenOfDomination';
 import {
   handleSelfClickAbility,
   handleSacrificeAbility,
@@ -22,8 +15,11 @@ import {
   handleLaunchAbility,
   handleBoulderAbility,
   handleSecondMoveAbility,
+  handleAbilityTargetClick,
+  handleSacrificeSelection,
 } from '@/engine/helpers/abilityHandlers';
 import { createInitialState } from '@/engine/initialBoard';
+import { hasSelfClickAbility } from '@/engine/pieceTraits';
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
   if (action.type === 'RESET_GAME') return createInitialState();
@@ -52,34 +48,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
       return state;
   }
 
-  if (next.pieces !== prevPieces) {
-    const nextIds = new Set(next.pieces.map(p => p.id));
-    const loadedIds = new Set(
-      next.pieces.filter(p => p.pieceLoaded).map(p => p.pieceLoaded!.id),
-    );
-    const newCaptures = prevPieces.filter(
-      p => !nextIds.has(p.id) && !loadedIds.has(p.id),
-    );
-
-    const lostPortals = prevPieces.filter(
-      p => p.type === 'Portal' && p.pieceLoaded && !nextIds.has(p.id),
-    );
-    for (const portal of lostPortals) {
-      const otherPortal = next.pieces.find(
-        np => np.type === 'Portal' && np.color === portal.color && np.pieceLoaded,
-      );
-      if (!otherPortal) {
-        newCaptures.push(portal.pieceLoaded!);
-      }
-    }
-
-    if (newCaptures.length > 0) {
-      next = { ...next, capturedPieces: [...next.capturedPieces, ...newCaptures] };
-    }
-  }
-
+  next = trackCaptures(prevPieces, next);
   return next;
 }
+
+// --- Selection ---
 
 function handleSelect(state: GameState, square: Square): GameState {
   const piece = getPieceAt(square, state.pieces);
@@ -91,6 +64,7 @@ function handleSelect(state: GameState, square: Square): GameState {
   const mod = getPieceModule(piece.type);
   if (!mod) return state;
 
+  // Stone pieces can be selected (to un-stone) but can't move
   const highlights: Highlight[] = [];
   if (!piece.isStone) {
     const moves = mod.getValidMoves(piece, state.pieces);
@@ -99,16 +73,15 @@ function handleSelect(state: GameState, square: Square): GameState {
       : moves.map(h => ({ ...h, color: 'preview' as const }))));
   }
 
-  const selfClickTypes = [
-    'NecroPawn', 'GhoulKing', 'DeadLauncher',
-    'Beholder', 'BoulderThrower', 'Familiar', 'Portal', 'WizardKing',
-  ];
-  if (isOwn && mod.getAbilityTargets && !selfClickTypes.includes(piece.type)) {
+  // Self-click pieces hide ability targets until activated
+  if (isOwn && mod.getAbilityTargets && !hasSelfClickAbility(piece.type)) {
     highlights.push(...mod.getAbilityTargets(piece, state.pieces));
   }
 
   return { ...state, selectedSquare: square, highlights, abilityMode: { type: 'none' } };
 }
+
+// --- Movement + Capture ---
 
 function handleMove(state: GameState, from: Square, to: Square): GameState {
   const piece = getPieceAt(from, state.pieces);
@@ -118,50 +91,17 @@ function handleMove(state: GameState, from: Square, to: Square): GameState {
   let current = state;
 
   if (target && target.color !== piece.color) {
-    switch (piece.type) {
-      case 'WizardTower': {
-        const wtResult = performRangedCapture(piece, to, current);
-        return maybeQoBRevival(target, wtResult, null);
-      }
-      case 'HellKing':
-        return checkWinCondition(performConvert(piece, to, current));
-      case 'Prowler': {
-        const prowlerResult = performProwlerCapture(piece, to, current);
-        const pendingSecond = prowlerResult.abilityMode.type === 'secondMove' ? piece.id : null;
-        return maybeQoBRevival(target, prowlerResult, pendingSecond);
-      }
-      case 'Howler': {
-        const howlerResult = performHowlerCapture(piece, to, current);
-        return maybeQoBRevival(target, howlerResult, null);
-      }
-      case 'HellPawn': {
-        const hpResult = performHellPawnCapture(piece, to, current);
-        return maybeQoBRevival(target, hpResult, null);
-      }
-      case 'YoungWiz': {
-        const dir = forwardDirection(piece.color);
-        if (to.row === piece.row + dir && to.col === piece.col) {
-          const zapResult = {
-            ...current,
-            pieces: removePiece(current.pieces, target.id),
-            selectedSquare: null,
-            highlights: [],
-            abilityMode: { type: 'none' } as const,
-          };
-          const revival = checkQoBRevival(target, zapResult, null);
-          if (revival) return revival;
-          return checkWinCondition(switchTurn(zapResult));
-        }
-        break;
-      }
-      default:
-        break;
-    }
+    // Try piece-specific capture (WizardTower, HellKing, Prowler, etc.)
+    const special = dispatchPieceCapture(piece, target, to, current);
+    if (special) return special;
 
+    // Generic capture path
     const result = handleCapture(target, piece, current);
-    if (!result.captured) return state;
+    if (!result.captured) return state; // stone immunity — block the move
+
     current = result.state;
 
+    // Necromancer post-capture resurrection
     if (result.triggerResurrection) {
       const targets = getResurrectionTargets(to, current.pieces);
       if (targets.length > 0) {
@@ -175,6 +115,7 @@ function handleMove(state: GameState, from: Square, to: Square): GameState {
       }
     }
 
+    // QoB revival (direct capture or QoD detonation collateral)
     if (result.triggerRevival) {
       const movedPieces = updatePiece(current.pieces, piece.id, { row: to.row, col: to.col, hasMoved: true });
       const deadQoB = target.type === 'QueenOfBones'
@@ -187,16 +128,19 @@ function handleMove(state: GameState, from: Square, to: Square): GameState {
     }
   }
 
+  // Apply the move
   current = {
     ...current,
     pieces: updatePiece(current.pieces, piece.id, { row: to.row, col: to.col, hasMoved: true }),
   };
 
+  // PawnHopper hop-capture (removes enemy in between a 2-step)
   if (piece.type === 'PawnHopper') {
     const { pieces: afterHop } = applyHopCapture(from, to, current.pieces, piece.color);
     current = { ...current, pieces: afterHop };
   }
 
+  // Revert QueenOfDomination temporary queen transformation
   const dominatingQueen = current.pieces.find(
     p => p.type === 'QueenOfDomination' && p.pieceLoaded?.id === piece.id,
   );
@@ -205,6 +149,7 @@ function handleMove(state: GameState, from: Square, to: Square): GameState {
     current = revertDomination(dominatingQueen, movedPiece, current);
   }
 
+  // GhostKnight stun aura
   const movedPiece = current.pieces.find(p => p.id === piece.id);
   if (movedPiece) {
     current = applyPostMoveEffects(movedPiece, current);
@@ -212,6 +157,8 @@ function handleMove(state: GameState, from: Square, to: Square): GameState {
 
   return checkWinCondition(switchTurn(current));
 }
+
+// --- Ability Dispatch ---
 
 function handleAbility(state: GameState, square: Square): GameState {
   switch (state.abilityMode.type) {
@@ -228,89 +175,38 @@ function handleAbility(state: GameState, square: Square): GameState {
   }
 }
 
-function handleAbilityTargetClick(state: GameState, square: Square): GameState {
-  const { selectedSquare } = state;
-  if (!selectedSquare) return state;
+// --- Graveyard Tracking ---
+// Diffs pieces arrays to detect removals. Excludes pieces stored
+// inside Portals (they're transported, not captured). Adds Portal-
+// loaded pieces to graveyard only when the last friendly Portal dies.
 
-  const selected = getPieceAt(selectedSquare, state.pieces);
-  if (!selected || selected.color !== state.currentTurn) return state;
+function trackCaptures(prevPieces: GameState['pieces'], next: GameState): GameState {
+  if (next.pieces === prevPieces) return next;
 
-  if (squaresEqual(square, selectedSquare)) {
-    return handleSelfClickAbility(state, square);
-  }
-
-  const target = getPieceAt(square, state.pieces);
-
-  switch (selected.type) {
-    case 'GhoulKing':
-      if (!target && selected.raisesLeft > 0) {
-        return performRaise(selected, square, state);
-      }
-      return state;
-    case 'QueenOfIllusions':
-      if (target && target.color === selected.color) {
-        return checkWinCondition(performSwap(selected, target.id, state));
-      }
-      return state;
-    case 'QueenOfDomination':
-      if (target && target.color === selected.color && target.id !== selected.id) {
-        return applyDomination(selected, target.id, state);
-      }
-      return state;
-    default:
-      return handleSelfClickAbility(state, square);
-  }
-}
-
-function maybeQoBRevival(captured: { type: string; color: string }, result: GameState, pendingSecondMove: string | null): GameState {
-  const preSwitch = {
-    ...result,
-    currentTurn: result.currentTurn === 'White' ? 'Black' as const : 'White' as const,
-  };
-  const revival = checkQoBRevival(captured, preSwitch, pendingSecondMove);
-  if (revival) return revival;
-  return checkWinCondition(result);
-}
-
-function handleSacrificeSelection(state: GameState, square: Square): GameState {
-  if (state.abilityMode.type !== 'sacrificeSelection') return state;
-  const { queenColor, sacrificeIds, pendingSecondMove } = state.abilityMode;
-
-  const isHighlighted = state.highlights.some(
-    h => h.row === square.row && h.col === square.col,
+  const nextIds = new Set(next.pieces.map(p => p.id));
+  const loadedIds = new Set(
+    next.pieces.filter(p => p.pieceLoaded).map(p => p.pieceLoaded!.id),
   );
-  if (!isHighlighted) return state;
+  const newCaptures = prevPieces.filter(
+    p => !nextIds.has(p.id) && !loadedIds.has(p.id),
+  );
 
-  const target = getPieceAt(square, state.pieces);
-  if (!target || target.color !== queenColor) return state;
-
-  const newIds = [...sacrificeIds, target.id];
-
-  if (newIds.length < 2) {
-    const remaining = state.highlights.filter(
-      h => !(h.row === square.row && h.col === square.col),
+  // Check for pieces lost inside destroyed Portals
+  const lostPortals = prevPieces.filter(
+    p => p.type === 'Portal' && p.pieceLoaded && !nextIds.has(p.id),
+  );
+  for (const portal of lostPortals) {
+    const otherPortal = next.pieces.find(
+      np => np.type === 'Portal' && np.color === portal.color && np.pieceLoaded,
     );
-    return {
-      ...state,
-      highlights: remaining,
-      abilityMode: { ...state.abilityMode, sacrificeIds: newIds },
-    };
-  }
-
-  let result = performRevival([newIds[0], newIds[1]], queenColor, state);
-
-  if (pendingSecondMove) {
-    const prowler = result.pieces.find(p => p.id === pendingSecondMove);
-    if (prowler) {
-      const secondMoves = getPieceModule('Prowler')!.getValidMoves(prowler, result.pieces);
-      return {
-        ...result,
-        selectedSquare: { row: prowler.row, col: prowler.col },
-        highlights: secondMoves,
-        abilityMode: { type: 'secondMove', pieceId: pendingSecondMove },
-      };
+    if (!otherPortal) {
+      newCaptures.push(portal.pieceLoaded!);
     }
   }
 
-  return checkWinCondition(switchTurn(result));
+  if (newCaptures.length > 0) {
+    return { ...next, capturedPieces: [...next.capturedPieces, ...newCaptures] };
+  }
+
+  return next;
 }

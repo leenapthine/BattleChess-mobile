@@ -1,6 +1,7 @@
 import type { Piece, Highlight, GameState } from '@/types/game';
 import { getKingMoves } from '@/engine/helpers/moveHelpers';
 import { isInBounds, getPieceAt, removePiece } from '@/engine/utils';
+import { opponentColor } from '@/engine/pieceTraits';
 
 export function getValidMoves(piece: Piece, pieces: Piece[]): Highlight[] {
   return getKingMoves(piece, pieces);
@@ -52,6 +53,6 @@ export function performRangedCapture(
     selectedSquare: null,
     highlights: [],
     abilityMode: { type: 'none' },
-    currentTurn: state.currentTurn === 'White' ? 'Black' : 'White',
+    currentTurn: opponentColor(state.currentTurn),
   };
 }

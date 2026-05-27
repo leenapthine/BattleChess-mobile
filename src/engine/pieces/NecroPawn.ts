@@ -1,6 +1,7 @@
 import type { Piece, Highlight, Square, GameState } from '@/types/game';
 import { getValidMoves as getPawnMoves } from './Pawn';
 import { getAllAdjacentSquares, isInBounds, getPieceAt, removePiece } from '@/engine/utils';
+import { opponentColor } from '@/engine/pieceTraits';
 
 export function getValidMoves(piece: Piece, pieces: Piece[]): Highlight[] {
   return getPawnMoves(piece, pieces);
@@ -41,6 +42,6 @@ export function performSacrifice(
     selectedSquare: null,
     highlights: [],
     abilityMode: { type: 'none' },
-    currentTurn: state.currentTurn === 'White' ? 'Black' : 'White',
+    currentTurn: opponentColor(state.currentTurn),
   };
 }

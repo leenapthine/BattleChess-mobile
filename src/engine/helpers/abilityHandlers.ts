@@ -11,6 +11,10 @@ import { getAbilityTargets as getBeholderTargets } from '@/engine/pieces/Beholde
 import { getAbilityTargets as getBoulderTargets } from '@/engine/pieces/BoulderThrower';
 import { getLoadTargets as getPortalLoadTargets, getEjectTargets, performLoad, performEject } from '@/engine/pieces/Portal';
 import { performSecondMove } from '@/engine/pieces/Prowler';
+import { performRaise } from '@/engine/pieces/GhoulKing';
+import { performSwap } from '@/engine/pieces/QueenOfIllusions';
+import { applyDomination } from '@/engine/pieces/QueenOfDomination';
+import { performRevival } from '@/engine/pieces/QueenOfBones';
 
 export function handleSelfClickAbility(state: GameState, square: Square): GameState {
   const piece = getPieceAt(square, state.pieces);
@@ -240,4 +244,90 @@ export function handleSecondMoveAbility(state: GameState, square: Square): GameS
   }
 
   return checkWinCondition(performSecondMove(prowler, square, state));
+}
+
+// Handles clicks on ability-colored highlights when no ability mode
+// is active. Routes to piece-specific ability functions (raise, swap,
+// dominate) or falls back to self-click activation.
+export function handleAbilityTargetClick(state: GameState, square: Square): GameState {
+  const { selectedSquare } = state;
+  if (!selectedSquare) return state;
+
+  const selected = getPieceAt(selectedSquare, state.pieces);
+  if (!selected || selected.color !== state.currentTurn) return state;
+
+  if (squaresEqual(square, selectedSquare)) {
+    return handleSelfClickAbility(state, square);
+  }
+
+  const target = getPieceAt(square, state.pieces);
+
+  switch (selected.type) {
+    case 'GhoulKing':
+      if (!target && selected.raisesLeft > 0) {
+        return performRaise(selected, square, state);
+      }
+      return state;
+    case 'QueenOfIllusions':
+      if (target && target.color === selected.color) {
+        return checkWinCondition(performSwap(selected, target.id, state));
+      }
+      return state;
+    case 'QueenOfDomination':
+      if (target && target.color === selected.color && target.id !== selected.id) {
+        return applyDomination(selected, target.id, state);
+      }
+      return state;
+    default:
+      return handleSelfClickAbility(state, square);
+  }
+}
+
+// QoB revival: player picks 2 friendly pawns to sacrifice, then QoB
+// respawns at home square. If a Prowler capture triggered the revival,
+// the Prowler gets its second move after revival completes.
+export function handleSacrificeSelection(state: GameState, square: Square): GameState {
+  if (state.abilityMode.type !== 'sacrificeSelection') return state;
+  const { queenColor, sacrificeIds, pendingSecondMove } = state.abilityMode;
+
+  const isHighlighted = state.highlights.some(
+    h => h.row === square.row && h.col === square.col,
+  );
+  if (!isHighlighted) return state;
+
+  const target = getPieceAt(square, state.pieces);
+  if (!target || target.color !== queenColor) return state;
+
+  const newIds = [...sacrificeIds, target.id];
+
+  // First pick — update highlights to exclude the chosen pawn
+  if (newIds.length < 2) {
+    const remaining = state.highlights.filter(
+      h => !(h.row === square.row && h.col === square.col),
+    );
+    return {
+      ...state,
+      highlights: remaining,
+      abilityMode: { ...state.abilityMode, sacrificeIds: newIds },
+    };
+  }
+
+  // Second pick — perform revival
+  let result = performRevival([newIds[0], newIds[1]], queenColor, state);
+
+  // Resume Prowler second move if it was interrupted by revival
+  if (pendingSecondMove) {
+    const prowler = result.pieces.find(p => p.id === pendingSecondMove);
+    if (prowler) {
+      const secondMoves = getPieceModule('Prowler')!.getValidMoves(prowler, result.pieces);
+      return {
+        ...result,
+        selectedSquare: { row: prowler.row, col: prowler.col },
+        highlights: secondMoves,
+        abilityMode: { type: 'secondMove', pieceId: pendingSecondMove },
+      };
+    }
+  }
+
+  return checkWinCondition(switchTurn(result));
 }

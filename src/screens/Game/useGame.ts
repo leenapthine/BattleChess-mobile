@@ -1,13 +1,9 @@
 import { useReducer, useCallback, useMemo, useRef, useState, useEffect } from 'react';
-import type { Piece, Square } from '@/types/game';
+import type { Square } from '@/types/game';
 import { gameReducer } from '@/engine/gameReducer';
 import { classifyAction } from '@/engine/helpers/classifyAction';
 import { createInitialState } from '@/engine/initialBoard';
-
-const SELF_CLICK_TYPES: Piece['type'][] = [
-  'NecroPawn', 'GhoulKing', 'DeadLauncher',
-  'Beholder', 'BoulderThrower', 'Familiar', 'Portal', 'WizardKing',
-];
+import { hasSelfClickAbility } from '@/engine/pieceTraits';
 
 export function useGame() {
   const [state, dispatch] = useReducer(gameReducer, null, createInitialState);
@@ -36,7 +32,7 @@ export function useGame() {
     const piece = state.pieces.find(
       p => p.row === state.selectedSquare!.row && p.col === state.selectedSquare!.col,
     );
-    return !!piece && piece.color === state.currentTurn && SELF_CLICK_TYPES.includes(piece.type);
+    return !!piece && piece.color === state.currentTurn && hasSelfClickAbility(piece.type);
   }, [state.selectedSquare, state.abilityMode, state.pieces, state.currentTurn]);
 
   const [flashMessage, setFlashMessage] = useState<string | null>(null);

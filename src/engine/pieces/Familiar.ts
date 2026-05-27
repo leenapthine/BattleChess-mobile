@@ -1,6 +1,7 @@
 import type { Piece, Highlight, GameState } from '@/types/game';
 import { getKnightMoves } from '@/engine/helpers/moveHelpers';
 import { updatePiece } from '@/engine/utils';
+import { opponentColor } from '@/engine/pieceTraits';
 
 export function getValidMoves(piece: Piece, pieces: Piece[]): Highlight[] {
   return getKnightMoves(piece, pieces);
@@ -26,8 +27,6 @@ export function toggleStone(
     selectedSquare: null,
     highlights: [],
     abilityMode: { type: 'none' },
-    currentTurn: wasStone
-      ? state.currentTurn
-      : state.currentTurn === 'White' ? 'Black' : 'White',
+    currentTurn: wasStone ? state.currentTurn : opponentColor(state.currentTurn),
   };
 }

@@ -1,6 +1,7 @@
 import type { Piece, Highlight, GameState, GainedAbilities } from '@/types/game';
 import { getValidMoves as getPawnMoves } from './Pawn';
 import { getPieceAt, removePiece } from '@/engine/utils';
+import { opponentColor } from '@/engine/pieceTraits';
 
 const PAWN_TYPES = ['Pawn', 'NecroPawn', 'HellPawn', 'YoungWiz', 'PawnHopper'] as const;
 
@@ -52,6 +53,6 @@ export function performCapture(
     selectedSquare: null,
     highlights: [],
     abilityMode: { type: 'none' },
-    currentTurn: state.currentTurn === 'White' ? 'Black' : 'White',
+    currentTurn: opponentColor(state.currentTurn),
   };
 }
