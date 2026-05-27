@@ -20,7 +20,9 @@ export function getValidMoves(piece: Piece, pieces: Piece[]): Highlight[] {
 
   for (const dc of [-1, 1]) {
     const diag = { row: piece.row + dir, col: piece.col + dc };
-    if (isInBounds(diag) && isOpponent(diag, piece.color, pieces)) {
+    if (!isInBounds(diag)) continue;
+    const diagPiece = getPieceAt(diag, pieces);
+    if (diagPiece && diagPiece.color !== piece.color && !diagPiece.isStone) {
       highlights.push({ ...diag, color: 'capture' });
     }
   }

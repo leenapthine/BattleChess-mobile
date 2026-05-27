@@ -97,4 +97,81 @@ describe('Familiar', () => {
     const updated = s2.pieces.find(p => p.id === fam.id)!;
     expect(updated.isStone).toBe(false);
   });
+
+  // --- Stone immunity ---
+
+  it('stone familiar not shown as capture target by sliding pieces', () => {
+    const fam = makePiece('Familiar', 'Black', 4, 4, { isStone: true });
+    const rook = makePiece('Rook', 'White', 4, 0);
+    const wk = makePiece('King', 'White', 0, 0);
+    const bk = makePiece('King', 'Black', 7, 7);
+    const state = makeState([fam, rook, wk, bk]);
+
+    const s1 = tap(state, { row: 4, col: 0 });
+    const captureHL = s1.highlights.find(h => h.row === 4 && h.col === 4);
+    expect(captureHL).toBeUndefined();
+  });
+
+  it('stone familiar not shown as capture target by knight', () => {
+    const fam = makePiece('Familiar', 'Black', 2, 3, { isStone: true });
+    const knight = makePiece('Knight', 'White', 4, 4);
+    const wk = makePiece('King', 'White', 0, 0);
+    const bk = makePiece('King', 'Black', 7, 7);
+    const state = makeState([fam, knight, wk, bk]);
+
+    const s1 = tap(state, { row: 4, col: 4 });
+    const captureHL = s1.highlights.find(h => h.row === 2 && h.col === 3);
+    expect(captureHL).toBeUndefined();
+  });
+
+  it('stone familiar survives PawnHopper hop', () => {
+    const fam = makePiece('Familiar', 'Black', 3, 4, { isStone: true });
+    const ph = makePiece('PawnHopper', 'White', 2, 4);
+    const wk = makePiece('King', 'White', 0, 0);
+    const bk = makePiece('King', 'Black', 7, 7);
+    const state = makeState([fam, ph, wk, bk], {
+      selectedSquare: { row: 2, col: 4 },
+      highlights: [{ row: 4, col: 4, color: 'move' }],
+    });
+
+    const s1 = tap(state, { row: 4, col: 4 });
+    expect(s1.pieces.find(p => p.id === fam.id)).toBeDefined();
+  });
+
+  it('stone familiar not shown as pawn diagonal capture', () => {
+    const fam = makePiece('Familiar', 'Black', 3, 3, { isStone: true });
+    const pawn = makePiece('Pawn', 'White', 2, 4);
+    const wk = makePiece('King', 'White', 0, 0);
+    const bk = makePiece('King', 'Black', 7, 7);
+    const state = makeState([fam, pawn, wk, bk]);
+
+    const s1 = tap(state, { row: 2, col: 4 });
+    const captureHL = s1.highlights.find(h => h.row === 3 && h.col === 3);
+    expect(captureHL).toBeUndefined();
+  });
+
+  it('stone familiar survives NecroPawn sacrifice AoE', () => {
+    const fam = makePiece('Familiar', 'Black', 4, 5, { isStone: true });
+    const np = makePiece('NecroPawn', 'White', 4, 4);
+    const wk = makePiece('King', 'White', 0, 0);
+    const bk = makePiece('King', 'Black', 7, 7);
+    const state = makeState([fam, np, wk, bk], {
+      abilityMode: { type: 'sacrifice', pieceId: np.id, armed: true },
+    });
+
+    const s1 = tap(state, { row: 4, col: 4 });
+    expect(s1.pieces.find(p => p.id === fam.id)).toBeDefined();
+  });
+
+  it('stone familiar not shown as WizardKing vertical target', () => {
+    const fam = makePiece('Familiar', 'Black', 7, 4, { isStone: true });
+    const wk2 = makePiece('WizardKing', 'White', 4, 4);
+    const wk = makePiece('King', 'White', 0, 0);
+    const bk = makePiece('King', 'Black', 7, 0);
+    const state = makeState([fam, wk2, wk, bk]);
+
+    const s1 = tap(state, { row: 4, col: 4 });
+    const captureHL = s1.highlights.find(h => h.row === 7 && h.col === 4 && h.color === 'capture');
+    expect(captureHL).toBeUndefined();
+  });
 });

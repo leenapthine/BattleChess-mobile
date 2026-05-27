@@ -17,7 +17,7 @@ export function getValidMoves(piece: Piece, pieces: Piece[]): Highlight[] {
     if (!isInBounds(target)) continue;
 
     const occupant = getPieceAt(target, pieces);
-    if (occupant && occupant.color === piece.color) continue;
+    if (occupant && (occupant.color === piece.color || occupant.isStone)) continue;
 
     const existing = highlights.find(h => h.row === target.row && h.col === target.col);
     if (!existing) {

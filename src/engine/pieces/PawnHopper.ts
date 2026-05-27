@@ -11,7 +11,8 @@ export function getValidMoves(piece: Piece, pieces: Piece[]): Highlight[] {
   if (!isEmpty(twoStep, pieces)) return highlights;
 
   const oneStep: Square = { row: piece.row + dir, col: piece.col };
-  const isHopCapture = isOpponent(oneStep, piece.color, pieces);
+  const oneStepPiece = getPieceAt(oneStep, pieces);
+  const isHopCapture = !!oneStepPiece && oneStepPiece.color !== piece.color && !oneStepPiece.isStone;
 
   const existing = highlights.find(h => h.row === twoStep.row && h.col === twoStep.col);
   if (!existing) {
@@ -35,7 +36,7 @@ export function applyHopCapture(
   const hoppedSquare: Square = { row: from.row + dir, col: from.col };
   const hopped = getPieceAt(hoppedSquare, pieces);
 
-  if (hopped && hopped.color !== color) {
+  if (hopped && hopped.color !== color && !hopped.isStone) {
     return { pieces: removePiece(pieces, hopped.id), captured: hopped };
   }
 

@@ -10,7 +10,7 @@ export function getValidMoves(piece: Piece, pieces: Piece[]): Highlight[] {
     while (row >= 0 && row < 8) {
       const occupant = getPieceAt({ row, col: piece.col }, pieces);
       if (occupant) {
-        if (occupant.color !== piece.color) {
+        if (occupant.color !== piece.color && !occupant.isStone) {
           const exists = highlights.find(h => h.row === row && h.col === piece.col);
           if (!exists) {
             highlights.push({ row, col: piece.col, color: 'capture' });
