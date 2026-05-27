@@ -73,6 +73,14 @@ export function handleSelfClickAbility(state: GameState, square: Square): GameSt
         abilityMode: { type: 'launch', pieceId: piece.id },
       };
     }
+    case 'WizardKing': {
+      const wkMod = getPieceModule('WizardKing')!;
+      return {
+        ...state,
+        highlights: wkMod.getAbilityTargets!(piece, state.pieces),
+        abilityMode: { type: 'boulder', pieceId: piece.id },
+      };
+    }
     default:
       return state;
   }

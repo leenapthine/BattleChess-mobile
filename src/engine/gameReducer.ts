@@ -83,7 +83,7 @@ function handleSelect(state: GameState, square: Square): GameState {
 
   const selfClickTypes = [
     'NecroPawn', 'GhoulKing', 'DeadLauncher',
-    'Beholder', 'BoulderThrower', 'Familiar', 'Portal',
+    'Beholder', 'BoulderThrower', 'Familiar', 'Portal', 'WizardKing',
   ];
   if (isOwn && mod.getAbilityTargets && !selfClickTypes.includes(piece.type)) {
     highlights.push(...mod.getAbilityTargets(piece, state.pieces));

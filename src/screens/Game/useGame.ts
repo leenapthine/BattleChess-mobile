@@ -6,7 +6,7 @@ import { createInitialState } from '@/engine/initialBoard';
 
 const SELF_CLICK_TYPES: Piece['type'][] = [
   'NecroPawn', 'GhoulKing', 'DeadLauncher',
-  'Beholder', 'BoulderThrower', 'Familiar', 'Portal',
+  'Beholder', 'BoulderThrower', 'Familiar', 'Portal', 'WizardKing',
 ];
 
 export function useGame() {

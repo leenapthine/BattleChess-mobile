@@ -60,6 +60,7 @@ function hasAbilityOnSelfClick(piece: Piece): boolean {
     'BoulderThrower',
     'Familiar',
     'Portal',
+    'WizardKing',
   ];
   return selfClickTypes.includes(piece.type);
 }

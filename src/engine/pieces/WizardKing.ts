@@ -1,28 +1,33 @@
 import type { Piece, Highlight, GameState } from '@/types/game';
 import { getKingMoves } from '@/engine/helpers/moveHelpers';
-import { getPieceAt, removePiece } from '@/engine/utils';
+import { isInBounds, getPieceAt, removePiece } from '@/engine/utils';
 
 export function getValidMoves(piece: Piece, pieces: Piece[]): Highlight[] {
-  const highlights = getKingMoves(piece, pieces);
+  return getKingMoves(piece, pieces);
+}
+
+export function getAbilityTargets(piece: Piece, pieces: Piece[]): Highlight[] {
+  const targets: Highlight[] = [];
 
   for (const dir of [-1, 1]) {
     let row = piece.row + dir;
     while (row >= 0 && row < 8) {
-      const occupant = getPieceAt({ row, col: piece.col }, pieces);
+      const sq = { row, col: piece.col };
+      const occupant = getPieceAt(sq, pieces);
       if (occupant) {
         if (occupant.color !== piece.color && !occupant.isStone) {
-          const exists = highlights.find(h => h.row === row && h.col === piece.col);
-          if (!exists) {
-            highlights.push({ row, col: piece.col, color: 'capture' });
-          }
+          targets.push({ ...sq, color: 'capture' });
+        } else {
+          targets.push({ ...sq, color: 'range' });
         }
         break;
       }
+      targets.push({ ...sq, color: 'range' });
       row += dir;
     }
   }
 
-  return highlights;
+  return targets;
 }
 
 export function performRangedCapture(
