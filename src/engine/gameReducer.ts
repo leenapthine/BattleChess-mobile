@@ -120,14 +120,16 @@ function handleMove(state: GameState, from: Square, to: Square): GameState {
       case 'YoungWiz': {
         const dir = forwardDirection(piece.color);
         if (to.row === piece.row + dir && to.col === piece.col) {
-          const zapResult = switchTurn({
+          const zapResult = {
             ...current,
             pieces: removePiece(current.pieces, target.id),
             selectedSquare: null,
             highlights: [],
-            abilityMode: { type: 'none' },
-          });
-          return maybeQoBRevival(target, zapResult, null);
+            abilityMode: { type: 'none' } as const,
+          };
+          const revival = checkQoBRevival(target, zapResult, null);
+          if (revival) return revival;
+          return checkWinCondition(switchTurn(zapResult));
         }
         break;
       }
@@ -234,7 +236,13 @@ function handleAbilityTargetClick(state: GameState, square: Square): GameState {
 }
 
 function maybeQoBRevival(captured: { type: string; color: string }, result: GameState, pendingSecondMove: string | null): GameState {
-  return checkQoBRevival(captured, result, pendingSecondMove) ?? checkWinCondition(result);
+  const preSwitch = {
+    ...result,
+    currentTurn: result.currentTurn === 'White' ? 'Black' as const : 'White' as const,
+  };
+  const revival = checkQoBRevival(captured, preSwitch, pendingSecondMove);
+  if (revival) return revival;
+  return checkWinCondition(result);
 }
 
 function handleSacrificeSelection(state: GameState, square: Square): GameState {

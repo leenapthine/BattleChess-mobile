@@ -85,12 +85,12 @@ export function handleSacrificeAbility(state: GameState, square: Square): GameSt
   if (!piece) return state;
 
   if (squaresEqual(square, { row: piece.row, col: piece.col })) {
-    const beforeIds = new Set(state.pieces.map(p => p.id));
     const sacrificeResult = performSacrifice(piece, state);
     const killed = state.pieces.filter(p => !sacrificeResult.pieces.find(sp => sp.id === p.id));
     const deadQoB = killed.find(p => p.type === 'QueenOfBones');
     if (deadQoB) {
-      const revival = checkQoBRevival(deadQoB, sacrificeResult, null);
+      const revivalState = { ...sacrificeResult, currentTurn: state.currentTurn };
+      const revival = checkQoBRevival(deadQoB, revivalState, null);
       if (revival) return revival;
     }
     return checkWinCondition(sacrificeResult);
@@ -176,10 +176,12 @@ export function handleLaunchAbility(state: GameState, square: Square): GameState
     }
     const result = handleCapture(target, launcher, state);
     const updated = updatePiece(result.state.pieces, launcher.id, { pawnLoaded: false });
-    const afterLaunch = switchTurn({
-      ...result.state, pieces: updated, selectedSquare: null, highlights: [], abilityMode: { type: 'none' },
-    });
-    return checkQoBRevival(target, afterLaunch, null) ?? checkWinCondition(afterLaunch);
+    const afterLaunch = {
+      ...result.state, pieces: updated, selectedSquare: null, highlights: [], abilityMode: { type: 'none' } as const,
+    };
+    const revival = checkQoBRevival(target, afterLaunch, null);
+    if (revival) return revival;
+    return checkWinCondition(switchTurn(afterLaunch));
   }
 
   if (launcher.type === 'Portal') {
@@ -200,10 +202,12 @@ export function handleBoulderAbility(state: GameState, square: Square): GameStat
   }
 
   const result = handleCapture(target, thrower, state);
-  const afterBoulder = switchTurn({
-    ...result.state, selectedSquare: null, highlights: [], abilityMode: { type: 'none' },
-  });
-  return checkQoBRevival(target, afterBoulder, null) ?? checkWinCondition(afterBoulder);
+  const afterBoulder = {
+    ...result.state, selectedSquare: null, highlights: [], abilityMode: { type: 'none' } as const,
+  };
+  const revival = checkQoBRevival(target, afterBoulder, null);
+  if (revival) return revival;
+  return checkWinCondition(switchTurn(afterBoulder));
 }
 
 export function handleSecondMoveAbility(state: GameState, square: Square): GameState {

@@ -100,6 +100,29 @@ describe('QueenOfBones', () => {
     expect(revived!.col).toBe(3);
   });
 
+  it('revival does not consume QoB teams turn', () => {
+    const qob = makePiece('QueenOfBones', 'White', 4, 4);
+    const attacker = makePiece('Rook', 'Black', 4, 0);
+    const p1 = makePiece('NecroPawn', 'White', 1, 0);
+    const p2 = makePiece('NecroPawn', 'White', 1, 1);
+    const wk = makePiece('King', 'White', 0, 4);
+    const bk = makePiece('King', 'Black', 7, 4);
+    const state = makeState([qob, attacker, p1, p2, wk, bk], {
+      currentTurn: 'Black',
+      selectedSquare: { row: 4, col: 0 },
+      highlights: [{ row: 4, col: 4, color: 'capture' }],
+    });
+
+    const s1 = tap(state, { row: 4, col: 4 });
+    expect(s1.currentTurn).toBe('Black');
+
+    const s2 = tap(s1, { row: 1, col: 0 });
+    expect(s2.currentTurn).toBe('Black');
+
+    const s3 = tap(s2, { row: 1, col: 1 });
+    expect(s3.currentTurn).toBe('White');
+  });
+
   it('no revival when fewer than 2 pawns remain', () => {
     const qob = makePiece('QueenOfBones', 'White', 4, 4);
     const attacker = makePiece('Rook', 'Black', 4, 0);
