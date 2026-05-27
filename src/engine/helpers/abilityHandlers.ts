@@ -170,10 +170,15 @@ export function handleLaunchAbility(state: GameState, square: Square): GameState
   if (!launcher) return state;
 
   if (launcher.type === 'DeadLauncher') {
-    const target = getPieceAt(square, state.pieces);
-    if (!target || target.color === launcher.color || target.isStone) {
-      return state;
+    const highlight = state.highlights.find(h => h.row === square.row && h.col === square.col);
+    if (!highlight) {
+      return { ...state, selectedSquare: null, highlights: [], abilityMode: { type: 'none' } };
     }
+    if (highlight.color === 'range') return state;
+
+    const target = getPieceAt(square, state.pieces);
+    if (!target || target.color === launcher.color || target.isStone) return state;
+
     const result = handleCapture(target, launcher, state);
     const updated = updatePiece(result.state.pieces, launcher.id, { pawnLoaded: false });
     const afterLaunch = {
@@ -195,11 +200,16 @@ export function handleBoulderAbility(state: GameState, square: Square): GameStat
   if (state.abilityMode.type !== 'boulder') return state;
   const { pieceId } = state.abilityMode;
   const thrower = state.pieces.find(p => p.id === pieceId);
-  const target = getPieceAt(square, state.pieces);
+  if (!thrower) return state;
 
-  if (!target || target.isStone || !thrower || target.color === thrower.color) {
-    return state;
+  const highlight = state.highlights.find(h => h.row === square.row && h.col === square.col);
+  if (!highlight) {
+    return { ...state, selectedSquare: null, highlights: [], abilityMode: { type: 'none' } };
   }
+  if (highlight.color === 'range') return state;
+
+  const target = getPieceAt(square, state.pieces);
+  if (!target || target.isStone || target.color === thrower.color) return state;
 
   const result = handleCapture(target, thrower, state);
   const afterBoulder = {

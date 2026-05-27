@@ -93,4 +93,42 @@ describe('BoulderThrower', () => {
     expect(s3.pieces.find(p => p.id === enemy.id)).toBeUndefined();
     expect(s3.currentTurn).toBe('Black');
   });
+
+  it('clicking outside range exits boulder mode', () => {
+    const bt = makePiece('BoulderThrower', 'White', 4, 4);
+    const wk = makePiece('King', 'White', 0, 0);
+    const bk = makePiece('King', 'Black', 7, 7);
+    const state = makeState([bt, wk, bk]);
+
+    const s2 = selectAndSelfClick(state, 4, 4);
+    expect(s2.abilityMode.type).toBe('boulder');
+    const s3 = tap(s2, { row: 0, col: 0 });
+    expect(s3.abilityMode.type).toBe('none');
+  });
+
+  it('clicking range circle does not exit boulder mode', () => {
+    const bt = makePiece('BoulderThrower', 'White', 4, 4);
+    const wk = makePiece('King', 'White', 0, 0);
+    const bk = makePiece('King', 'Black', 7, 7);
+    const state = makeState([bt, wk, bk]);
+
+    const s2 = selectAndSelfClick(state, 4, 4);
+    const rangeHL = s2.highlights.find(h => h.color === 'range');
+    expect(rangeHL).toBeDefined();
+    const s3 = tap(s2, { row: rangeHL!.row, col: rangeHL!.col });
+    expect(s3.abilityMode.type).toBe('boulder');
+  });
+
+  it('cannot capture enemy outside range', () => {
+    const bt = makePiece('BoulderThrower', 'White', 4, 4);
+    const farEnemy = makePiece('Pawn', 'Black', 0, 0);
+    const wk = makePiece('King', 'White', 0, 4);
+    const bk = makePiece('King', 'Black', 7, 7);
+    const state = makeState([bt, farEnemy, wk, bk]);
+
+    const s2 = selectAndSelfClick(state, 4, 4);
+    const s3 = tap(s2, { row: 0, col: 0 });
+    expect(s3.pieces.find(p => p.id === farEnemy.id)).toBeDefined();
+    expect(s3.abilityMode.type).toBe('none');
+  });
 });
