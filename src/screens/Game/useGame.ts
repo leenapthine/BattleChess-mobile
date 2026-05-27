@@ -24,6 +24,13 @@ export function useGame() {
     dispatch({ type: 'RESET_GAME' });
   }, []);
 
+  const selectedPiece = useMemo(() => {
+    if (!state.selectedSquare) return null;
+    return state.pieces.find(
+      p => p.row === state.selectedSquare!.row && p.col === state.selectedSquare!.col,
+    ) ?? null;
+  }, [state.selectedSquare, state.pieces]);
+
   const selectedCanActivate = useMemo(() => {
     if (!state.selectedSquare || state.abilityMode.type !== 'none') return false;
     const piece = state.pieces.find(
@@ -60,6 +67,7 @@ export function useGame() {
     capturedPieces: state.capturedPieces,
     currentTurn: state.currentTurn,
     selectedSquare: state.selectedSquare,
+    selectedPiece,
     selectedCanActivate,
     highlights: state.highlights,
     abilityMode: state.abilityMode,

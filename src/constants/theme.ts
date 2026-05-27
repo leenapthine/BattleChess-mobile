@@ -1,7 +1,7 @@
 export const BOARD = {
-  light: '#769656',
-  dark: '#4e7837',
-  selected: '#22cc22',
+  light: '#2d8c2d',
+  dark: '#1a6b1a',
+  selected: '#00ff00',
 };
 
 export const HIGHLIGHT = {
@@ -13,10 +13,17 @@ export const HIGHLIGHT = {
 };
 
 export const COLORS = {
-  background: '#1a1a2e',
-  headerBg: '#16213e',
-  text: '#e0e0e0',
-  textMuted: '#888',
-  white: '#f0f0f0',
-  black: '#333',
+  background: '#000000',
+  headerBg: '#001a00',
+  text: '#00ff00',
+  textMuted: '#009900',
+  white: '#00ff00',
+  black: '#003300',
+  cardBg: '#1a4a1a',
+  border: '#00ff00',
+};
+
+export const FONT = {
+  mono: 'SpaceMono_400Regular',
+  monoBold: 'SpaceMono_700Bold',
 };

@@ -739,4 +739,4 @@ All bugs from the original codebase have been addressed during the engine port.
 
 ---
 
-*Last updated: 2026-05-27 — Phase 4 complete, all abilities tested and fixed, 293 tests across 31 suites*
+*Last updated: 2026-05-27 — Phase 4 complete, Homebrew terminal theme + sprite info cards, 293 tests across 31 suites*

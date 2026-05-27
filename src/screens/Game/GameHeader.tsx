@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 import type { Color, GameStatus, AbilityMode } from '@/types/game';
-import { COLORS } from '@/constants/theme';
+import { COLORS, FONT } from '@/constants/theme';
 
 type Props = {
   currentTurn: Color;
@@ -45,11 +45,12 @@ const styles = StyleSheet.create({
   turn: {
     color: COLORS.text,
     fontSize: 20,
-    fontWeight: 'bold',
+    fontFamily: FONT.monoBold,
   },
   ability: {
-    color: COLORS.textMuted,
-    fontSize: 14,
+    color: '#ffffff',
+    fontSize: 13,
+    fontFamily: FONT.mono,
     marginTop: 4,
   },
 });

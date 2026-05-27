@@ -38,9 +38,10 @@ Expo (React Native) app with TypeScript. Game state managed by a pure reducer.
 - `src/navigation/` — navigation config
 - `src/types/game.ts` — core types: `Piece`, `GameState`, `GameAction`, `AbilityMode`
 - `src/utils/` — shared utility functions
-- `src/constants/theme.ts` — board colors, highlight colors, app palette
+- `src/constants/theme.ts` — board colors, highlight colors, app palette (Homebrew terminal theme)
 - `src/constants/sprites.ts` — sprite map: `getSprite(color, type) → ImageSource`
-- `assets/sprites/` — 60 PNGs: `{Color}{Type}.png`
+- `src/data/pieceDescriptions.ts` — ability descriptions for all 30 piece types
+- `assets/sprites/` — 60 PNGs: `{Color}{Type}.png` (32x32 pixel art)
 
 ### Screen file structure (Header / View / Hook)
 
@@ -63,15 +64,17 @@ All game logic is pure TypeScript — no React, no signals, no mutation.
 
 ### Game Screen UI
 
-The board is an 8×8 grid of React Native `Pressable` squares. White renders at the bottom.
+The board is an 8×8 grid of React Native `Pressable` squares. White renders at the bottom. Homebrew terminal aesthetic: black background, green text, Space Mono font throughout.
 
+- **Theme:** black background (#000000), green board squares (#2d8c2d / #1a6b1a), green text (#00ff00), monospace font (Space Mono)
 - **Highlights:** all highlights are thick inner square borders rendered under sprites
-- **Highlight colors:** green (selected piece), yellow (move), red (capture/death), blue (non-lethal ability), grey (range indicator for ranged abilities), grey lighter (opponent preview)
+- **Highlight colors:** green (selected piece), yellow (move), red (capture/death), blue (non-lethal ability), grey (range/preview)
 - **Selected piece with ability:** blue border when self-click ability available, green after activation
 - **Self-click pieces:** NecroPawn, GhoulKing, DeadLauncher, Beholder, BoulderThrower, Familiar, Portal, WizardKing — ability targets hidden until activated
+- **Sprite info cards:** tapping a piece shows an info card with sprite + ability description. Black pieces show card above board, White below. Descriptions in `src/data/pieceDescriptions.ts`
 - **Header:** shows current turn, ability-mode instructions, and flash messages (e.g. "Familiar turned to stone!")
-- **Win overlay:** dark overlay with winner text and "New Game" button dispatching `RESET_GAME`
-- **Captured pieces:** fixed-height graveyard rows above/below the board; Portal-loaded pieces excluded until last Portal captured
+- **Win overlay:** dark overlay with winner text and green "New Game" button
+- **Graveyard:** temporarily removed from UI (captured pieces still tracked in state for future redesign)
 
 ### Engine progress
 

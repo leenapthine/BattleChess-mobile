@@ -3,15 +3,15 @@ import { StatusBar } from 'expo-status-bar';
 import { useGame } from './useGame';
 import { GameHeader } from './GameHeader';
 import { GameView } from './GameView';
-import { CapturedPieces } from '@/components/CapturedPieces';
+import { SpriteInfoCard } from '@/components/SpriteInfoCard';
 import { COLORS } from '@/constants/theme';
 
 export function GameScreen() {
   const {
     pieces,
-    capturedPieces,
     currentTurn,
     selectedSquare,
+    selectedPiece,
     selectedCanActivate,
     highlights,
     abilityMode,
@@ -21,30 +21,37 @@ export function GameScreen() {
     onNewGame,
   } = useGame();
 
-  const { width } = useWindowDimensions();
-  const spriteSize = Math.min(width - 16, 400) / 16;
+  const { width, height } = useWindowDimensions();
+  const cardHeight = 90;
 
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
+      <View style={{ height: 20 }} />
       <GameHeader
         currentTurn={currentTurn}
         status={status}
         abilityMode={abilityMode}
         flashMessage={flashMessage}
       />
-      <View style={styles.boardContainer}>
-        <CapturedPieces pieces={capturedPieces} color="Black" spriteSize={spriteSize} />
-        <GameView
-          pieces={pieces}
-          selectedSquare={selectedSquare}
-          selectedCanActivate={selectedCanActivate}
-          highlights={highlights}
-          status={status}
-          onSquarePress={onSquarePress}
-          onNewGame={onNewGame}
-        />
-        <CapturedPieces pieces={capturedPieces} color="White" spriteSize={spriteSize} />
+      <View style={[styles.cardSlot, { height: cardHeight }]}>
+        {selectedPiece?.color === 'Black' && (
+          <SpriteInfoCard piece={selectedPiece} />
+        )}
+      </View>
+      <GameView
+        pieces={pieces}
+        selectedSquare={selectedSquare}
+        selectedCanActivate={selectedCanActivate}
+        highlights={highlights}
+        status={status}
+        onSquarePress={onSquarePress}
+        onNewGame={onNewGame}
+      />
+      <View style={[styles.cardSlot, { height: cardHeight }]}>
+        {selectedPiece?.color === 'White' && (
+          <SpriteInfoCard piece={selectedPiece} />
+        )}
       </View>
     </View>
   );
@@ -55,8 +62,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  boardContainer: {
-    flex: 1,
+  cardSlot: {
     justifyContent: 'center',
   },
 });

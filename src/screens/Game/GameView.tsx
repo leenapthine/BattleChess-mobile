@@ -1,6 +1,6 @@
 import { View, Pressable, Image, Text, StyleSheet, useWindowDimensions } from 'react-native';
 import type { Piece, Square, Highlight, GameStatus } from '@/types/game';
-import { BOARD, HIGHLIGHT, COLORS } from '@/constants/theme';
+import { BOARD, HIGHLIGHT, COLORS, FONT } from '@/constants/theme';
 import { getSprite } from '@/constants/sprites';
 
 type Props = {
@@ -77,7 +77,6 @@ export function GameView({ pieces, selectedSquare, selectedCanActivate, highligh
                       height: tileSize,
                       opacity: piece.stunned ? 0.4 : piece.isStone ? 0.6 : 1,
                     }}
-                    resizeMode="contain"
                   />
                 )}
               </Pressable>
@@ -101,8 +100,6 @@ export function GameView({ pieces, selectedSquare, selectedCanActivate, highligh
 const styles = StyleSheet.create({
   board: {
     alignSelf: 'center',
-    borderWidth: 2,
-    borderColor: '#333',
   },
   row: {
     flexDirection: 'row',
@@ -124,19 +121,19 @@ const styles = StyleSheet.create({
   },
   winText: {
     color: COLORS.text,
-    fontSize: 32,
-    fontWeight: 'bold',
+    fontSize: 28,
+    fontFamily: FONT.monoBold,
     marginBottom: 20,
   },
   newGameBtn: {
-    backgroundColor: '#4a90d9',
+    backgroundColor: COLORS.border,
     paddingHorizontal: 28,
     paddingVertical: 14,
-    borderRadius: 8,
+    borderRadius: 4,
   },
   newGameText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
+    color: '#000000',
+    fontSize: 16,
+    fontFamily: FONT.monoBold,
   },
 });

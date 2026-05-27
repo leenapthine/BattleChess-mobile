@@ -1,18 +1,20 @@
 import { View, Image, StyleSheet } from 'react-native';
 import type { Piece, Color } from '@/types/game';
 import { getSprite } from '@/constants/sprites';
+import { COLORS } from '@/constants/theme';
 
 type Props = {
   pieces: Piece[];
   color: Color;
   spriteSize: number;
+  boardWidth: number;
 };
 
-export function CapturedPieces({ pieces, color, spriteSize }: Props) {
+export function CapturedPieces({ pieces, color, spriteSize, boardWidth }: Props) {
   const captured = pieces.filter(p => p.color === color);
 
   return (
-    <View style={[styles.row, { height: spriteSize + 8 }]}>
+    <View style={[styles.row, { height: spriteSize + 8, width: boardWidth }]}>
       {captured.map((p, i) => (
         <Image
           key={`${p.id}-${i}`}
