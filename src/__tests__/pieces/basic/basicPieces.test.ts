@@ -4,7 +4,7 @@ import { getValidMoves as getBishopMoves } from '@/engine/pieces/Bishop';
 import { getValidMoves as getRookMoves } from '@/engine/pieces/Rook';
 import { getValidMoves as getQueenMoves } from '@/engine/pieces/Queen';
 import { getValidMoves as getKingMoves } from '@/engine/pieces/King';
-import { makePiece, resetIds, hasSquare } from '../testHelpers';
+import { makePiece, resetIds, hasSquare } from '../../testHelpers';
 
 beforeEach(() => resetIds());
 
