@@ -28,6 +28,8 @@ export function getAbilityTargets(piece: Piece, pieces: Piece[]): Highlight[] {
       const occupant = getPieceAt(sq, pieces);
       if (occupant && occupant.color !== piece.color && !occupant.isStone) {
         targets.push({ ...sq, color: 'capture' });
+      } else {
+        targets.push({ ...sq, color: 'range' });
       }
     }
   }

@@ -9,6 +9,7 @@ export const HIGHLIGHT = {
   capture: '#dd0000',
   ability: '#0066ff',
   preview: '#aaaaaa',
+  range: 'rgba(255, 255, 255, 0.3)',
 };
 
 export const COLORS = {

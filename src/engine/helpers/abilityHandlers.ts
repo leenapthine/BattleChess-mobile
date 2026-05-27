@@ -172,7 +172,7 @@ export function handleLaunchAbility(state: GameState, square: Square): GameState
   if (launcher.type === 'DeadLauncher') {
     const target = getPieceAt(square, state.pieces);
     if (!target || target.color === launcher.color || target.isStone) {
-      return { ...state, selectedSquare: null, highlights: [], abilityMode: { type: 'none' } };
+      return state;
     }
     const result = handleCapture(target, launcher, state);
     const updated = updatePiece(result.state.pieces, launcher.id, { pawnLoaded: false });
@@ -198,7 +198,7 @@ export function handleBoulderAbility(state: GameState, square: Square): GameStat
   const target = getPieceAt(square, state.pieces);
 
   if (!target || target.isStone || !thrower || target.color === thrower.color) {
-    return { ...state, selectedSquare: null, highlights: [], abilityMode: { type: 'none' } };
+    return state;
   }
 
   const result = handleCapture(target, thrower, state);

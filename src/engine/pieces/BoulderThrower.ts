@@ -30,11 +30,11 @@ export function getAbilityTargets(piece: Piece, pieces: Piece[]): Highlight[] {
       if (Math.abs(dx) + Math.abs(dy) !== 3) continue;
       const sq: Square = { row: piece.row + dy, col: piece.col + dx };
       if (!isInBounds(sq)) continue;
-      if (isOpponent(sq, piece.color, pieces)) {
-        const target = getPieceAt(sq, pieces);
-        if (target && !target.isStone) {
-          targets.push({ ...sq, color: 'capture' });
-        }
+      const occupant = getPieceAt(sq, pieces);
+      if (occupant && occupant.color !== piece.color && !occupant.isStone) {
+        targets.push({ ...sq, color: 'capture' });
+      } else {
+        targets.push({ ...sq, color: 'range' });
       }
     }
   }

@@ -9,7 +9,11 @@ export function getValidMoves(piece: Piece, pieces: Piece[]): Highlight[] {
 export function getAbilityTargets(piece: Piece, pieces: Piece[]): Highlight[] {
   return getAllAdjacentSquares(piece)
     .filter(isInBounds)
-    .map(sq => ({ ...sq, color: 'capture' as const }));
+    .map(sq => {
+      const occupant = getPieceAt(sq, pieces);
+      const color = occupant && !occupant.isStone ? 'capture' : 'range';
+      return { ...sq, color } as Highlight;
+    });
 }
 
 export function performSacrifice(

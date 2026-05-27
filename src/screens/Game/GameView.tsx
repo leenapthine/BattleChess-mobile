@@ -53,11 +53,23 @@ export function GameView({ pieces, selectedSquare, selectedCanActivate, highligh
                     ]}
                   />
                 )}
-                {highlight && !isSelected && (
+                {highlight && !isSelected && highlight.color !== 'range' && (
                   <View
                     style={[
                       styles.highlightBorder,
                       { borderColor: HIGHLIGHT[highlight.color] },
+                    ]}
+                  />
+                )}
+                {highlight && highlight.color === 'range' && (
+                  <View
+                    style={[
+                      styles.rangeDot,
+                      {
+                        width: tileSize * 0.3,
+                        height: tileSize * 0.3,
+                        borderRadius: tileSize * 0.15,
+                      },
                     ]}
                   />
                 )}
@@ -106,6 +118,11 @@ const styles = StyleSheet.create({
   highlightBorder: {
     ...StyleSheet.absoluteFill,
     borderWidth: 4,
+    zIndex: 0,
+  },
+  rangeDot: {
+    position: 'absolute',
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
     zIndex: 0,
   },
   overlay: {

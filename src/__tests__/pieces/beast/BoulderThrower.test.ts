@@ -45,12 +45,15 @@ describe('BoulderThrower', () => {
 
   // --- Ability highlight tests ---
 
-  it('ranged targets use ability color', () => {
+  it('ranged targets: capture on enemies, range on empty', () => {
     const bt = makePiece('BoulderThrower', 'White', 4, 4);
     const enemy = makePiece('Pawn', 'Black', 4, 7);
     const targets = getAbilityTargets(bt, [bt, enemy]);
     expect(targets.length).toBeGreaterThan(0);
-    expect(targets.every(t => t.color === 'capture')).toBe(true);
+    const enemyHL = targets.find(t => t.row === 4 && t.col === 7);
+    expect(enemyHL!.color).toBe('capture');
+    const rangeHL = targets.filter(t => t.color === 'range');
+    expect(rangeHL.length).toBeGreaterThan(0);
   });
 
   it('only targets at exactly manhattan distance 3', () => {

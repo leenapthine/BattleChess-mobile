@@ -74,7 +74,7 @@ export type Piece = {
   gainedAbilities: GainedAbilities;
 };
 
-export type HighlightColor = 'move' | 'capture' | 'ability' | 'preview';
+export type HighlightColor = 'move' | 'capture' | 'ability' | 'preview' | 'range';
 
 export type Highlight = Square & {
   color: HighlightColor;

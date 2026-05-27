@@ -57,11 +57,15 @@ describe('NecroPawn', () => {
 
   // --- Ability highlight tests ---
 
-  it('blast zone uses ability color', () => {
+  it('blast zone: capture on occupied, range on empty', () => {
     const np = makePiece('NecroPawn', 'White', 4, 4);
-    const targets = getAbilityTargets(np, [np]);
+    const ally = makePiece('Pawn', 'White', 4, 5);
+    const targets = getAbilityTargets(np, [np, ally]);
     expect(targets.length).toBeGreaterThan(0);
-    expect(targets.every(t => t.color === 'capture')).toBe(true);
+    const allyHL = targets.find(t => t.row === 4 && t.col === 5);
+    expect(allyHL!.color).toBe('capture');
+    const emptyHL = targets.filter(t => t.color === 'range');
+    expect(emptyHL.length).toBeGreaterThan(0);
   });
 
   // --- Full tap flow tests ---

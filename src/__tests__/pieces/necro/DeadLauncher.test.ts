@@ -35,14 +35,16 @@ describe('DeadLauncher', () => {
     expect(hasSquare(targets, 0, 1)).toBe(true);
   });
 
-  it('BUG #6 REGRESSION: getLaunchTargets only shows enemy-occupied squares', () => {
+  it('getLaunchTargets shows capture on enemies and range on empty/friendly', () => {
     const dl = makePiece('DeadLauncher', 'White', 4, 4);
     const enemy = makePiece('Pawn', 'Black', 4, 7);
     const targets = getLaunchTargets(dl, [dl, enemy]);
-    expect(targets.every(t => t.color === 'capture')).toBe(true);
-    expect(hasSquare(targets, 4, 7)).toBe(true);
-    const emptyTarget = targets.find(t => t.row === 7 && t.col === 4);
-    expect(emptyTarget).toBeUndefined();
+    const enemyHL = targets.find(t => t.row === 4 && t.col === 7);
+    expect(enemyHL).toBeDefined();
+    expect(enemyHL!.color).toBe('capture');
+    const emptyHL = targets.find(t => t.row === 7 && t.col === 4);
+    expect(emptyHL).toBeDefined();
+    expect(emptyHL!.color).toBe('range');
   });
 
   // --- Full tap flow tests ---

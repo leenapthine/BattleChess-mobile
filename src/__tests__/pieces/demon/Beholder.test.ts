@@ -42,35 +42,44 @@ describe('Beholder', () => {
     expect(hasSquare(targets, 4, 7)).toBe(true);
   });
 
-  it('getAbilityTargets excludes stone pieces', () => {
+  it('getAbilityTargets shows stone pieces as range, not capture', () => {
     const b = makePiece('Beholder', 'Black', 4, 4);
     const stoned = makePiece('Pawn', 'White', 4, 7, { isStone: true });
     const targets = getAbilityTargets(b, [b, stoned]);
-    expect(hasSquare(targets, 4, 7)).toBe(false);
+    const stonedHL = targets.find(t => t.row === 4 && t.col === 7);
+    expect(stonedHL).toBeDefined();
+    expect(stonedHL!.color).toBe('range');
   });
 
   // --- Ability highlight tests ---
 
-  it('ranged targets use ability color', () => {
+  it('ranged targets: capture on enemies, range on empty/friendly', () => {
     const beholder = makePiece('Beholder', 'White', 4, 4);
     const enemy = makePiece('Pawn', 'Black', 3, 3);
     const targets = getAbilityTargets(beholder, [beholder, enemy]);
     expect(targets.length).toBeGreaterThan(0);
-    expect(targets.every(t => t.color === 'capture')).toBe(true);
+    const enemyHL = targets.find(t => t.row === 3 && t.col === 3);
+    expect(enemyHL!.color).toBe('capture');
+    const rangeHL = targets.filter(t => t.color === 'range');
+    expect(rangeHL.length).toBeGreaterThan(0);
   });
 
-  it('does not target friendly pieces', () => {
+  it('friendly pieces show as range, not capture', () => {
     const beholder = makePiece('Beholder', 'White', 4, 4);
     const ally = makePiece('Pawn', 'White', 3, 3);
     const targets = getAbilityTargets(beholder, [beholder, ally]);
-    expect(targets).toHaveLength(0);
+    const allyHL = targets.find(t => t.row === 3 && t.col === 3);
+    expect(allyHL).toBeDefined();
+    expect(allyHL!.color).toBe('range');
   });
 
-  it('does not target stone pieces', () => {
+  it('stone pieces show as range, not capture', () => {
     const beholder = makePiece('Beholder', 'White', 4, 4);
     const stoned = makePiece('Pawn', 'Black', 3, 3, { isStone: true });
     const targets = getAbilityTargets(beholder, [beholder, stoned]);
-    expect(targets).toHaveLength(0);
+    const stonedHL = targets.find(t => t.row === 3 && t.col === 3);
+    expect(stonedHL).toBeDefined();
+    expect(stonedHL!.color).toBe('range');
   });
 
   // --- Full tap flow tests ---
