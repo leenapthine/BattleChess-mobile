@@ -16,7 +16,7 @@ export function getLoadTargets(piece: Piece, pieces: Piece[]): Highlight[] {
       target.color === piece.color &&
       (PAWN_TYPES as readonly string[]).includes(target.type)
     );
-  }).map(sq => ({ ...sq, color: 'ability' as const }));
+  }).map(sq => ({ ...sq, color: 'capture' as const }));
 }
 
 export function getLaunchTargets(piece: Piece, pieces: Piece[]): Highlight[] {
