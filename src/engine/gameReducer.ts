@@ -54,7 +54,25 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
   if (next.pieces !== prevPieces) {
     const nextIds = new Set(next.pieces.map(p => p.id));
-    const newCaptures = prevPieces.filter(p => !nextIds.has(p.id));
+    const loadedIds = new Set(
+      next.pieces.filter(p => p.pieceLoaded).map(p => p.pieceLoaded!.id),
+    );
+    const newCaptures = prevPieces.filter(
+      p => !nextIds.has(p.id) && !loadedIds.has(p.id),
+    );
+
+    const lostPortals = prevPieces.filter(
+      p => p.type === 'Portal' && p.pieceLoaded && !nextIds.has(p.id),
+    );
+    for (const portal of lostPortals) {
+      const otherPortal = next.pieces.find(
+        np => np.type === 'Portal' && np.color === portal.color && np.pieceLoaded,
+      );
+      if (!otherPortal) {
+        newCaptures.push(portal.pieceLoaded!);
+      }
+    }
+
     if (newCaptures.length > 0) {
       next = { ...next, capturedPieces: [...next.capturedPieces, ...newCaptures] };
     }
