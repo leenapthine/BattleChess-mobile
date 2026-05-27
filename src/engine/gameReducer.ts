@@ -6,6 +6,7 @@ import { switchTurn, applyPostMoveEffects } from '@/engine/helpers/turnManager';
 import { applyHopCapture } from '@/engine/pieces/PawnHopper';
 import { getResurrectionTargets } from '@/engine/pieces/Necromancer';
 import { revertDomination, applyDomination } from '@/engine/pieces/QueenOfDomination';
+import { getEligibleSacrifices, performRevival, canRevive as canReviveQoB } from '@/engine/pieces/QueenOfBones';
 import { performSwap } from '@/engine/pieces/QueenOfIllusions';
 import { performRangedCapture } from '@/engine/pieces/WizardTower';
 import { performConvert } from '@/engine/pieces/HellKing';
@@ -97,12 +98,19 @@ function handleMove(state: GameState, from: Square, to: Square): GameState {
         return checkWinCondition(performRangedCapture(piece, to, current));
       case 'HellKing':
         return checkWinCondition(performConvert(piece, to, current));
-      case 'Prowler':
-        return checkWinCondition(performProwlerCapture(piece, to, current));
-      case 'Howler':
-        return checkWinCondition(performHowlerCapture(piece, to, current));
-      case 'HellPawn':
-        return checkWinCondition(performHellPawnCapture(piece, to, current));
+      case 'Prowler': {
+        const prowlerResult = performProwlerCapture(piece, to, current);
+        const pendingSecond = prowlerResult.abilityMode.type === 'secondMove' ? piece.id : null;
+        return maybeQoBRevival(target, prowlerResult, pendingSecond);
+      }
+      case 'Howler': {
+        const howlerResult = performHowlerCapture(piece, to, current);
+        return maybeQoBRevival(target, howlerResult, null);
+      }
+      case 'HellPawn': {
+        const hpResult = performHellPawnCapture(piece, to, current);
+        return maybeQoBRevival(target, hpResult, null);
+      }
       case 'YoungWiz': {
         const dir = forwardDirection(piece.color);
         if (to.row === piece.row + dir && to.col === piece.col) {
@@ -137,10 +145,14 @@ function handleMove(state: GameState, from: Square, to: Square): GameState {
     }
 
     if (result.triggerRevival) {
+      const movedPieces = updatePiece(current.pieces, piece.id, { row: to.row, col: to.col, hasMoved: true });
+      const eligible = getEligibleSacrifices(target.color, movedPieces);
       return {
         ...current,
-        pieces: updatePiece(current.pieces, piece.id, { row: to.row, col: to.col, hasMoved: true }),
-        abilityMode: { type: 'sacrificeSelection' },
+        pieces: movedPieces,
+        selectedSquare: null,
+        highlights: eligible.map(p => ({ row: p.row, col: p.col, color: 'ability' as const })),
+        abilityMode: { type: 'sacrificeSelection', queenColor: target.color, sacrificeIds: [], pendingSecondMove: null },
       };
     }
   }
@@ -180,7 +192,7 @@ function handleAbility(state: GameState, square: Square): GameState {
     case 'boulder': return handleBoulderAbility(state, square);
     case 'domination': return handleMove(state, state.selectedSquare!, square);
     case 'secondMove': return handleSecondMoveAbility(state, square);
-    case 'sacrificeSelection': return state;
+    case 'sacrificeSelection': return handleSacrificeSelection(state, square);
     case 'none': return handleAbilityTargetClick(state, square);
     default: return state;
   }
@@ -218,4 +230,60 @@ function handleAbilityTargetClick(state: GameState, square: Square): GameState {
     default:
       return handleSelfClickAbility(state, square);
   }
+}
+
+function maybeQoBRevival(captured: { type: string; color: string }, result: GameState, pendingSecondMove: string | null): GameState {
+  if (captured.type === 'QueenOfBones' && canReviveQoB(captured.color as 'White' | 'Black', result.pieces)) {
+    const eligible = getEligibleSacrifices(captured.color as 'White' | 'Black', result.pieces);
+    return {
+      ...result,
+      selectedSquare: null,
+      highlights: eligible.map(p => ({ row: p.row, col: p.col, color: 'ability' as const })),
+      abilityMode: { type: 'sacrificeSelection', queenColor: captured.color as 'White' | 'Black', sacrificeIds: [], pendingSecondMove },
+    };
+  }
+  return checkWinCondition(result);
+}
+
+function handleSacrificeSelection(state: GameState, square: Square): GameState {
+  if (state.abilityMode.type !== 'sacrificeSelection') return state;
+  const { queenColor, sacrificeIds, pendingSecondMove } = state.abilityMode;
+
+  const isHighlighted = state.highlights.some(
+    h => h.row === square.row && h.col === square.col,
+  );
+  if (!isHighlighted) return state;
+
+  const target = getPieceAt(square, state.pieces);
+  if (!target || target.color !== queenColor) return state;
+
+  const newIds = [...sacrificeIds, target.id];
+
+  if (newIds.length < 2) {
+    const remaining = state.highlights.filter(
+      h => !(h.row === square.row && h.col === square.col),
+    );
+    return {
+      ...state,
+      highlights: remaining,
+      abilityMode: { ...state.abilityMode, sacrificeIds: newIds },
+    };
+  }
+
+  let result = performRevival([newIds[0], newIds[1]], queenColor, state);
+
+  if (pendingSecondMove) {
+    const prowler = result.pieces.find(p => p.id === pendingSecondMove);
+    if (prowler) {
+      const secondMoves = getPieceModule('Prowler')!.getValidMoves(prowler, result.pieces);
+      return {
+        ...result,
+        selectedSquare: { row: prowler.row, col: prowler.col },
+        highlights: secondMoves,
+        abilityMode: { type: 'secondMove', pieceId: pendingSecondMove },
+      };
+    }
+  }
+
+  return checkWinCondition(switchTurn(result));
 }

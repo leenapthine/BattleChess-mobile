@@ -89,7 +89,7 @@ export type AbilityMode =
   | { type: 'boulder'; pieceId: string }
   | { type: 'domination'; pieceId: string }
   | { type: 'secondMove'; pieceId: string }
-  | { type: 'sacrificeSelection' };
+  | { type: 'sacrificeSelection'; queenColor: Color; sacrificeIds: string[]; pendingSecondMove: string | null };
 
 export type GameStatus =
   | { type: 'active' }
