@@ -50,7 +50,7 @@ describe('BoulderThrower', () => {
     const enemy = makePiece('Pawn', 'Black', 4, 7);
     const targets = getAbilityTargets(bt, [bt, enemy]);
     expect(targets.length).toBeGreaterThan(0);
-    expect(targets.every(t => t.color === 'ability')).toBe(true);
+    expect(targets.every(t => t.color === 'capture')).toBe(true);
   });
 
   it('only targets at exactly manhattan distance 3', () => {

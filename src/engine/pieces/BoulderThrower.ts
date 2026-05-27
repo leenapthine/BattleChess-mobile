@@ -33,7 +33,7 @@ export function getAbilityTargets(piece: Piece, pieces: Piece[]): Highlight[] {
       if (isOpponent(sq, piece.color, pieces)) {
         const target = getPieceAt(sq, pieces);
         if (target && !target.isStone) {
-          targets.push({ ...sq, color: 'ability' });
+          targets.push({ ...sq, color: 'capture' });
         }
       }
     }

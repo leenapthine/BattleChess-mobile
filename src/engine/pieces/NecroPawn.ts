@@ -9,7 +9,7 @@ export function getValidMoves(piece: Piece, pieces: Piece[]): Highlight[] {
 export function getAbilityTargets(piece: Piece, pieces: Piece[]): Highlight[] {
   return getAllAdjacentSquares(piece)
     .filter(isInBounds)
-    .map(sq => ({ ...sq, color: 'ability' as const }));
+    .map(sq => ({ ...sq, color: 'capture' as const }));
 }
 
 export function performSacrifice(

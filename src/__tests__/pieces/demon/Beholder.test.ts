@@ -56,7 +56,7 @@ describe('Beholder', () => {
     const enemy = makePiece('Pawn', 'Black', 3, 3);
     const targets = getAbilityTargets(beholder, [beholder, enemy]);
     expect(targets.length).toBeGreaterThan(0);
-    expect(targets.every(t => t.color === 'ability')).toBe(true);
+    expect(targets.every(t => t.color === 'capture')).toBe(true);
   });
 
   it('does not target friendly pieces', () => {

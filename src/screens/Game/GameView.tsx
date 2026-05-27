@@ -31,9 +31,6 @@ export function GameView({ pieces, selectedSquare, highlights, status, onSquareP
               selectedSquare?.row === row && selectedSquare?.col === col;
             const isDark = (row + col) % 2 === 1;
 
-            const showDot = highlight && !piece && highlight.color === 'move';
-            const showRing = highlight && (piece || highlight.color !== 'move');
-
             return (
               <Pressable
                 key={col}
@@ -49,12 +46,16 @@ export function GameView({ pieces, selectedSquare, highlights, status, onSquareP
                         ? BOARD.dark
                         : BOARD.light,
                   },
-                  showRing && {
-                    borderWidth: 3,
-                    borderColor: HIGHLIGHT[highlight!.color],
-                  },
                 ]}
               >
+                {highlight && (
+                  <View
+                    style={[
+                      styles.highlightBorder,
+                      { borderColor: HIGHLIGHT[highlight.color] },
+                    ]}
+                  />
+                )}
                 {piece && (
                   <Image
                     source={getSprite(piece.color, piece.type)!}
@@ -64,18 +65,6 @@ export function GameView({ pieces, selectedSquare, highlights, status, onSquareP
                       opacity: piece.stunned ? 0.4 : piece.isStone ? 0.6 : 1,
                     }}
                     resizeMode="contain"
-                  />
-                )}
-                {showDot && (
-                  <View
-                    style={[
-                      styles.dot,
-                      {
-                        width: tileSize * 0.3,
-                        height: tileSize * 0.3,
-                        borderRadius: tileSize * 0.15,
-                      },
-                    ]}
                   />
                 )}
               </Pressable>
@@ -109,9 +98,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-end',
   },
-  dot: {
-    backgroundColor: 'rgba(0, 0, 0, 0.25)',
-    position: 'absolute',
+  highlightBorder: {
+    ...StyleSheet.absoluteFill,
+    borderWidth: 4,
+    zIndex: 0,
   },
   overlay: {
     ...StyleSheet.absoluteFill,

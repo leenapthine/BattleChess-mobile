@@ -61,7 +61,7 @@ describe('NecroPawn', () => {
     const np = makePiece('NecroPawn', 'White', 4, 4);
     const targets = getAbilityTargets(np, [np]);
     expect(targets.length).toBeGreaterThan(0);
-    expect(targets.every(t => t.color === 'ability')).toBe(true);
+    expect(targets.every(t => t.color === 'capture')).toBe(true);
   });
 
   // --- Full tap flow tests ---

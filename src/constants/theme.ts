@@ -5,10 +5,10 @@ export const BOARD = {
 };
 
 export const HIGHLIGHT = {
-  move: 'rgba(255, 255, 0, 0.4)',
-  capture: 'rgba(255, 0, 0, 0.5)',
-  ability: 'rgba(0, 255, 255, 0.4)',
-  preview: 'rgba(200, 200, 200, 0.3)',
+  move: 'rgba(255, 220, 0, 0.7)',
+  capture: 'rgba(220, 30, 30, 0.7)',
+  ability: 'rgba(50, 130, 240, 0.7)',
+  preview: 'rgba(180, 180, 180, 0.4)',
 };
 
 export const COLORS = {
