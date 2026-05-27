@@ -40,15 +40,19 @@ export function GameView({ pieces, selectedSquare, highlights, status, onSquareP
                   {
                     width: tileSize,
                     height: tileSize,
-                    backgroundColor: isSelected
-                      ? BOARD.selected
-                      : isDark
-                        ? BOARD.dark
-                        : BOARD.light,
+                    backgroundColor: isDark ? BOARD.dark : BOARD.light,
                   },
                 ]}
               >
-                {highlight && (
+                {isSelected && (
+                  <View
+                    style={[
+                      styles.highlightBorder,
+                      { borderColor: BOARD.selected },
+                    ]}
+                  />
+                )}
+                {highlight && !isSelected && (
                   <View
                     style={[
                       styles.highlightBorder,
