@@ -101,6 +101,44 @@ describe('DeadLauncher', () => {
 
   // --- Edge case tests ---
 
+  it('cannot load a non-pawn friendly piece', () => {
+    const dl = makePiece('DeadLauncher', 'White', 0, 0);
+    const rook = makePiece('Rook', 'White', 0, 1);
+    const wk = makePiece('King', 'White', 0, 4);
+    const bk = makePiece('King', 'Black', 7, 7);
+    const state = makeState([dl, rook, wk, bk]);
+
+    const s2 = selectAndSelfClick(state, 0, 0);
+    expect(s2.abilityMode.type).toBe('loading');
+    const s3 = tap(s2, { row: 0, col: 1 });
+    expect(s3.pieces.find(p => p.id === rook.id)).toBeDefined();
+    expect(s3.pieces.find(p => p.id === dl.id)!.pawnLoaded).toBe(false);
+  });
+
+  it('cannot load itself', () => {
+    const dl = makePiece('DeadLauncher', 'White', 0, 0);
+    const wk = makePiece('King', 'White', 0, 4);
+    const bk = makePiece('King', 'Black', 7, 7);
+    const state = makeState([dl, wk, bk]);
+
+    const s2 = selectAndSelfClick(state, 0, 0);
+    const s3 = tap(s2, { row: 0, col: 0 });
+    expect(s3.pieces.find(p => p.id === dl.id)).toBeDefined();
+    expect(s3.pieces.find(p => p.id === dl.id)!.pawnLoaded).toBe(false);
+  });
+
+  it('loading only accepts highlighted pawn targets', () => {
+    const dl = makePiece('DeadLauncher', 'White', 0, 0);
+    const farPawn = makePiece('NecroPawn', 'White', 5, 5);
+    const wk = makePiece('King', 'White', 0, 4);
+    const bk = makePiece('King', 'Black', 7, 7);
+    const state = makeState([dl, farPawn, wk, bk]);
+
+    const s2 = selectAndSelfClick(state, 0, 0);
+    const s3 = tap(s2, { row: 5, col: 5 });
+    expect(s3.pieces.find(p => p.id === farPawn.id)).toBeDefined();
+  });
+
   it('can still move normally while loaded', () => {
     const dl = makePiece('DeadLauncher', 'White', 0, 0, { pawnLoaded: true });
     const wk = makePiece('King', 'White', 0, 4);

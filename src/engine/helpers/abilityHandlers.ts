@@ -128,6 +128,13 @@ export function handleLoadingAbility(state: GameState, square: Square): GameStat
   const loader = state.pieces.find(p => p.id === pieceId);
   if (!loader) return state;
 
+  const isValidTarget = state.highlights.some(
+    h => h.row === square.row && h.col === square.col,
+  );
+  if (!isValidTarget) {
+    return { ...state, selectedSquare: null, highlights: [], abilityMode: { type: 'none' } };
+  }
+
   const target = getPieceAt(square, state.pieces);
   if (!target || target.color !== loader.color) {
     return { ...state, selectedSquare: null, highlights: [], abilityMode: { type: 'none' } };
