@@ -41,11 +41,18 @@ export function useGame() {
     const newStone = state.pieces.find(
       p => p.type === 'Familiar' && p.isStone && !prev.find(pp => pp.id === p.id && pp.isStone),
     );
+    const unStoned = prev.find(
+      p => p.type === 'Familiar' && p.isStone && state.pieces.find(sp => sp.id === p.id && !sp.isStone),
+    );
     if (newStone) {
       setFlashMessage('Familiar turned to stone!');
-      const timer = setTimeout(() => setFlashMessage(null), 2000);
-      return () => clearTimeout(timer);
+    } else if (unStoned) {
+      setFlashMessage('Familiar is no longer stone');
+    } else {
+      return;
     }
+    const timer = setTimeout(() => setFlashMessage(null), 2000);
+    return () => clearTimeout(timer);
   }, [state.pieces]);
 
   return {

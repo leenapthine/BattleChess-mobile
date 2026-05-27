@@ -98,6 +98,50 @@ describe('Familiar', () => {
     expect(updated.isStone).toBe(false);
   });
 
+  it('stone familiar cannot move — no highlights shown', () => {
+    const fam = makePiece('Familiar', 'Black', 4, 4, { isStone: true });
+    const wk = makePiece('King', 'White', 0, 0);
+    const bk = makePiece('King', 'Black', 7, 7);
+    const state = makeState([fam, wk, bk], { currentTurn: 'Black' });
+
+    const s1 = tap(state, { row: 4, col: 4 });
+    expect(s1.selectedSquare).toEqual({ row: 4, col: 4 });
+    expect(s1.highlights).toHaveLength(0);
+  });
+
+  it('move blocked for stone piece even if highlights existed', () => {
+    const fam = makePiece('Familiar', 'Black', 4, 4, { isStone: true });
+    const wk = makePiece('King', 'White', 0, 0);
+    const bk = makePiece('King', 'Black', 7, 7);
+    const state = makeState([fam, wk, bk], {
+      currentTurn: 'Black',
+      selectedSquare: { row: 4, col: 4 },
+      highlights: [{ row: 2, col: 3, color: 'move' }],
+    });
+
+    const s1 = gameReducer(state, { type: 'MOVE_PIECE', from: { row: 4, col: 4 }, to: { row: 2, col: 3 } });
+    const f = s1.pieces.find(p => p.id === fam.id)!;
+    expect(f.row).toBe(4);
+    expect(f.col).toBe(4);
+  });
+
+  it('capturing a stone target does not move the attacker onto it', () => {
+    const fam = makePiece('Familiar', 'Black', 4, 4, { isStone: true });
+    const rook = makePiece('Rook', 'White', 4, 0);
+    const wk = makePiece('King', 'White', 0, 0);
+    const bk = makePiece('King', 'Black', 7, 7);
+    const state = makeState([fam, rook, wk, bk], {
+      selectedSquare: { row: 4, col: 0 },
+      highlights: [{ row: 4, col: 4, color: 'capture' }],
+    });
+
+    const s1 = gameReducer(state, { type: 'MOVE_PIECE', from: { row: 4, col: 0 }, to: { row: 4, col: 4 } });
+    expect(s1.pieces.find(p => p.id === fam.id)).toBeDefined();
+    const r = s1.pieces.find(p => p.id === rook.id)!;
+    expect(r.row).toBe(4);
+    expect(r.col).toBe(0);
+  });
+
   // --- Stone immunity ---
 
   it('stone familiar not shown as capture target by sliding pieces', () => {

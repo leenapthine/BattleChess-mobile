@@ -73,10 +73,13 @@ function handleSelect(state: GameState, square: Square): GameState {
   const mod = getPieceModule(piece.type);
   if (!mod) return state;
 
-  const moves = mod.getValidMoves(piece, state.pieces);
-  const highlights: Highlight[] = isOwn
-    ? moves
-    : moves.map(h => ({ ...h, color: 'preview' as const }));
+  const highlights: Highlight[] = [];
+  if (!piece.isStone) {
+    const moves = mod.getValidMoves(piece, state.pieces);
+    highlights.push(...(isOwn
+      ? moves
+      : moves.map(h => ({ ...h, color: 'preview' as const }))));
+  }
 
   const selfClickTypes = [
     'NecroPawn', 'GhoulKing', 'DeadLauncher',
@@ -91,7 +94,7 @@ function handleSelect(state: GameState, square: Square): GameState {
 
 function handleMove(state: GameState, from: Square, to: Square): GameState {
   const piece = getPieceAt(from, state.pieces);
-  if (!piece || piece.color !== state.currentTurn || piece.stunned) return state;
+  if (!piece || piece.color !== state.currentTurn || piece.stunned || piece.isStone) return state;
 
   const target = getPieceAt(to, state.pieces);
   let current = state;
@@ -138,6 +141,7 @@ function handleMove(state: GameState, from: Square, to: Square): GameState {
     }
 
     const result = handleCapture(target, piece, current);
+    if (!result.captured) return state;
     current = result.state;
 
     if (result.triggerResurrection) {
