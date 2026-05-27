@@ -128,7 +128,7 @@ All game state is a single immutable `GameState` object managed by a pure reduce
 | `capturedPieces` | `Piece[]` | Pieces removed from the board (for graveyard display) |
 | `currentTurn` | `'White' \| 'Black'` | Whose turn it is |
 | `selectedSquare` | `Square \| null` | The currently selected square |
-| `highlights` | `Highlight[]` | Tiles currently highlighted (move, capture, ability, preview) |
+| `highlights` | `Highlight[]` | Tiles currently highlighted (move, capture, ability, preview, range) |
 | `abilityMode` | `AbilityMode` | Discriminated union tracking multi-step ability flows (sacrifice, resurrection, loading, launch, boulder, domination, secondMove, sacrificeSelection) |
 | `status` | `GameStatus` | Active game or winner declared |
 
@@ -140,16 +140,21 @@ The board is an 8×8 grid of React Native `Pressable` components. White pieces r
 
 Sprites live in `assets/sprites/{Color}{Type}.png` — e.g. `WhiteNecromancer.png`, `BlackHellPawn.png`. 60 PNGs total (30 piece types × 2 colors). Mapped via `src/constants/sprites.ts`.
 
-**Highlight indicators:**
-- `move` — centered semi-transparent dot on empty squares
-- `capture` — red ring border on enemy-occupied squares
-- `ability` — cyan ring border on special ability targets
-- `preview` — grey ring border on opponent piece range (read-only)
+**Highlight system — all highlights are thick inner square borders rendered under sprites:**
+- Green border — selected piece
+- Blue border — selected piece with self-click ability available (reverts to green after activation)
+- Yellow border (`move`) — valid movement square
+- Red border (`capture`) — enemy that will die, or friendly in AoE blast zone
+- Blue border (`ability`) — non-lethal ability targets (load, raise, swap, dominate, eject)
+- Grey border (`range`) — ranged ability reach on empty/friendly/stone squares (non-interactive)
+- Grey border (`preview`) — opponent piece range (read-only)
+
+**Self-click ability pieces** (ability targets hidden until self-click activation): NecroPawn, GhoulKing, DeadLauncher, Beholder, BoulderThrower, Familiar, Portal, WizardKing
 
 **Additional UI:**
-- **Header** — shows current turn label and ability-mode instructions
+- **Header** — shows current turn, ability-mode instructions, and flash messages (e.g. "Familiar turned to stone!")
 - **Win overlay** — appears on king capture with winner text and "New Game" button
-- **Captured pieces graveyard** — small sprite rows above (Black captures) and below (White captures) the board; tracked via `capturedPieces` on `GameState`
+- **Captured pieces graveyard** — fixed-height sprite rows above/below the board per color; Portal-loaded pieces excluded from graveyard until last friendly Portal is captured
 
 ---
 
@@ -648,7 +653,7 @@ Every piece object in the `pieces()` array has these fields:
 
 | Field | Type | Default | Purpose |
 |---|---|---|---|
-| `id` | `number \| UUID` | assigned at init | Unique identifier (initial pieces use numeric IDs 1–32; dynamically spawned pieces use `crypto.randomUUID()` or `Date.now()`) |
+| `id` | `string` | assigned at init | Unique identifier (initial pieces use numeric string IDs; dynamically spawned pieces use `generateId()`) |
 | `type` | `string` | — | Piece type name (must match sprite filename and logic module name) |
 | `color` | `"White" \| "Black"` | — | Which team this piece belongs to |
 | `row` | `0–7` | — | Current row position |
@@ -664,12 +669,15 @@ Every piece object in the `pieces()` array has these fields:
 
 ## Highlight Color System
 
-| Key | Visual | Meaning |
+| Key | Color | Meaning |
 |---|---|---|
-| `move` | Semi-transparent dot | Standard valid move (empty square) |
-| `capture` | Red ring border | Enemy-occupied capture target |
-| `ability` | Cyan ring border | Special ability target (AoE blast zone, ranged boulder, friendly targets) |
-| `preview` | Grey ring border | Opponent's piece range (read-only, click does nothing) |
+| selected | Green border | Currently selected piece |
+| selected+ability | Blue border | Selected piece with self-click ability available |
+| `move` | Yellow border | Standard valid move (empty square) |
+| `capture` | Red border | Enemy that will die, or friendly in AoE blast |
+| `ability` | Blue border | Non-lethal ability target (load, raise, swap, dominate, eject) |
+| `range` | Grey border | Ranged ability reach (empty/friendly/stone, non-interactive) |
+| `preview` | Grey border (lighter) | Opponent piece range (read-only) |
 
 ---
 
@@ -677,7 +685,7 @@ Every piece object in the `pieces()` array has these fields:
 
 1. **Opponent piece previewing:** Clicking an enemy piece shows its movement range in grey (not yellow/red). This is read-only — you cannot act on grey highlights.
 
-2. **Stone immunity applies universally:** `isStone` is checked in `handleCapture` before any capture logic. This protects against NecroPawn AoE, boulder throws, DeadLauncher launches, and HellKing conversion — all of which go through `handleCapture`.
+2. **Stone immunity applies universally:** `isStone` is checked in `handleCapture`, all move helpers (sliding, stepping, hopping), pawn diagonals, YoungWiz zap, FrogKing hops, and WizardKing vertical shot. Stone pieces are invisible to all capture targeting. Stone Familiar cannot move — must un-stone first (free action).
 
 3. **QueenOfDestruction detonation in `handleCapture`:** The detonation check fires at the TOP of `handleCapture`, before the piece is removed. This means the QoD's detonation zone is computed correctly based on where she was when captured.
 
@@ -731,4 +739,4 @@ All bugs from the original codebase have been addressed during the engine port.
 
 ---
 
-*Last updated: 2026-05-26 — Phase 4 complete, all abilities wired through reducer, 212 tests passing*
+*Last updated: 2026-05-27 — Phase 4 complete, all abilities tested and fixed, 293 tests across 31 suites*

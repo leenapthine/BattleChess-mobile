@@ -14,7 +14,7 @@ npm run web      # start in browser
 TypeScript strict mode enabled.
 
 ```bash
-npm test         # run Jest test suite (212 tests)
+npm test         # run Jest test suite (293 tests)
 ```
 
 ## Architecture
@@ -28,7 +28,7 @@ Expo (React Native) app with TypeScript. Game state managed by a pure reducer.
 - `src/engine/helpers/` — shared move generation helpers
 - `src/engine/utils.ts` — board queries and immutable update helpers
 - `src/engine/gameReducer.ts` — central reducer handling all actions + captured piece tracking
-- `src/engine/initialBoard.ts` — default starting layout (Necro vs Demon)
+- `src/engine/initialBoard.ts` — default starting layout (currently Beast vs Wizard)
 - `src/screens/` — each screen is a folder with Header/View/Hook split
 - `src/screens/Game/` — main game board (Header/View/Hook, fully wired)
 - `src/screens/ArmyBuilder/` — guild/race selection (placeholder)
@@ -65,30 +65,30 @@ All game logic is pure TypeScript — no React, no signals, no mutation.
 
 The board is an 8×8 grid of React Native `Pressable` squares. White renders at the bottom.
 
-- **Highlights:** empty move squares show a centered dot; captures/abilities show a colored ring border
-- **Highlight colors:** `move` (yellow dot), `capture` (red ring), `ability` (cyan ring), `preview` (grey ring for opponent pieces)
-- **Header:** shows current turn and ability-mode instructions (e.g. "Select a target to sacrifice")
+- **Highlights:** all highlights are thick inner square borders rendered under sprites
+- **Highlight colors:** green (selected piece), yellow (move), red (capture/death), blue (non-lethal ability), grey (range indicator for ranged abilities), grey lighter (opponent preview)
+- **Selected piece with ability:** blue border when self-click ability available, green after activation
+- **Self-click pieces:** NecroPawn, GhoulKing, DeadLauncher, Beholder, BoulderThrower, Familiar, Portal, WizardKing — ability targets hidden until activated
+- **Header:** shows current turn, ability-mode instructions, and flash messages (e.g. "Familiar turned to stone!")
 - **Win overlay:** dark overlay with winner text and "New Game" button dispatching `RESET_GAME`
-- **Captured pieces:** small sprite rows above/below the board per color; tracked via `capturedPieces` on `GameState` (diffed automatically in the reducer)
+- **Captured pieces:** fixed-height graveyard rows above/below the board; Portal-loaded pieces excluded until last Portal captured
 
 ### Engine progress
 
-All 30 piece types ported. Reducer fully wired with piece-specific capture dispatch. Test suite passing (212 tests). Phases 2–4 complete. Verified on web (Playwright) and iOS simulator (iPhone 16, Expo Go).
+All 30 piece types ported. Reducer fully wired with piece-specific capture dispatch. All abilities manually tested on iOS simulator. Test suite: 293 tests across 31 suites. Phases 2–4 complete.
 
-- Basic pieces: done
-- Necro guild: done
-- Demon guild: done
-- Beast guild: done
-- Wizard guild: done
-- Reducer integration: done
-- Action classifier: done
-- Capture handler (stone, QoD detonation, QoB revival): done
-- Turn manager (stun clearing fixed): done
-- King-capture win condition: done
-- Piece-specific capture dispatch (WizardTower, HellKing, Prowler, Howler, HellPawn, YoungWiz): done
-- Ability target click routing (GhoulKing raise, QoI swap, QoD domination): done
+- Engine (all pieces, reducer, helpers): done
 - Game screen UI (board, highlights, header, win overlay, graveyard): done
-- Test suite (13 suites, 212 tests): done
+- Piece-specific capture dispatch (WizardTower, HellKing, Prowler, Howler, HellPawn, YoungWiz): done
+- Self-click ability system (8 piece types): done
+- WizardKing reworked as self-click ranged ability (boulder mode): done
+- GhostKnight stun fixed (clears outgoing player, not incoming): done
+- Prowler second move (highlights, capture allowed, no forfeit on misclick): done
+- QoB revival from all kill paths (standard, ranged, AoE, detonation collateral): done
+- Stone immunity across all capture/highlight paths: done
+- Portal graveyard behavior (no graveyard on load, graveyard on last portal death): done
+- Highlight system (green/yellow/red/blue/grey borders, range indicators): done
+- Test suite (31 suites, 293 tests): done
 - iOS simulator verification: done
 
 ### Game reference
