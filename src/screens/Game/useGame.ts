@@ -1,12 +1,22 @@
 import { useReducer, useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import type { Square } from '@/types/game';
+import type { ArmyConfig } from '@/types/army';
 import { gameReducer } from '@/engine/gameReducer';
 import { classifyAction } from '@/engine/helpers/classifyAction';
 import { createInitialState } from '@/engine/initialBoard';
 import { hasSelfClickAbility } from '@/engine/pieceTraits';
 
-export function useGame() {
-  const [state, dispatch] = useReducer(gameReducer, null, createInitialState);
+type Props = {
+  p1Army: ArmyConfig;
+  p2Army: ArmyConfig;
+};
+
+export function useGame({ p1Army, p2Army }: Props) {
+  const [state, dispatch] = useReducer(
+    gameReducer,
+    { p1Army, p2Army },
+    (args) => createInitialState(args.p1Army, args.p2Army),
+  );
 
   const onSquarePress = useCallback(
     (square: Square) => {

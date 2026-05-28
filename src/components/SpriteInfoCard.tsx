@@ -45,8 +45,9 @@ const styles = StyleSheet.create({
   sprite: {
     width: 48,
     height: 48,
-    imageRendering: 'pixelated',
-  } as any,
+    backgroundColor: '#2d8c2d',
+    borderRadius: 4,
+  },
   textContainer: {
     flex: 1,
     marginLeft: 8,

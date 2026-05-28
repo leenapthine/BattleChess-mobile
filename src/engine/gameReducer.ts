@@ -22,7 +22,9 @@ import { createInitialState } from '@/engine/initialBoard';
 import { hasSelfClickAbility } from '@/engine/pieceTraits';
 
 export function gameReducer(state: GameState, action: GameAction): GameState {
-  if (action.type === 'RESET_GAME') return createInitialState();
+  if (action.type === 'RESET_GAME' && state.armyConfigs) {
+    return createInitialState(state.armyConfigs.p1, state.armyConfigs.p2);
+  }
   if (state.status.type === 'won') return state;
 
   const prevPieces = state.pieces;

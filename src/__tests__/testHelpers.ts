@@ -1,4 +1,7 @@
 import type { Piece, PieceType, Color, GameState, GainedAbilities } from '@/types/game';
+import type { ArmyConfig } from '@/types/army';
+import { createDefaultArmy } from '@/types/army';
+import { createInitialState } from '@/engine/initialBoard';
 
 let nextId = 1;
 
@@ -42,12 +45,28 @@ export function makeState(pieces: Piece[], overrides?: Partial<GameState>): Game
     highlights: [],
     abilityMode: { type: 'none' },
     status: { type: 'active' },
+    armyConfigs: {
+      p1: makeFullyUpgradedArmy('Beast'),
+      p2: makeFullyUpgradedArmy('Wizard'),
+    },
     ...overrides,
   };
 }
 
 export function resetIds(): void {
   nextId = 1;
+}
+
+export function makeFullyUpgradedArmy(guild: ArmyConfig['guild']): ArmyConfig {
+  const army = createDefaultArmy(guild);
+  return { ...army, slots: army.slots.map(s => ({ ...s, upgraded: true })) };
+}
+
+export function createTestState(): GameState {
+  return createInitialState(
+    makeFullyUpgradedArmy('Beast'),
+    makeFullyUpgradedArmy('Wizard'),
+  );
 }
 
 export function squaresList(highlights: { row: number; col: number }[]): string[] {

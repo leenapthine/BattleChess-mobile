@@ -1,6 +1,5 @@
 import { gameReducer } from '@/engine/gameReducer';
 import { classifyAction } from '@/engine/helpers/classifyAction';
-import { createInitialState } from '@/engine/initialBoard';
 import { makePiece, makeState, resetIds } from './testHelpers';
 import type { GameState, Square } from '@/types/game';
 

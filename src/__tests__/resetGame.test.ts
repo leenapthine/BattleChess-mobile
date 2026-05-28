@@ -1,12 +1,11 @@
 import { gameReducer } from '@/engine/gameReducer';
-import { createInitialState } from '@/engine/initialBoard';
-import { makeState, resetIds } from './testHelpers';
+import { makeState, resetIds, createTestState } from './testHelpers';
 
 beforeEach(() => resetIds());
 
 describe('RESET_GAME', () => {
   it('returns fresh initial state', () => {
-    const initial = createInitialState();
+    const initial = createTestState();
     const modified = gameReducer(initial, {
       type: 'SELECT_SQUARE',
       square: { row: 1, col: 0 },

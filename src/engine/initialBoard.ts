@@ -1,4 +1,6 @@
-import type { Piece, GameState, GainedAbilities } from '@/types/game';
+import type { Piece, GameState, GainedAbilities, Color } from '@/types/game';
+import type { ArmyConfig } from '@/types/army';
+import { GUILD_PIECES } from '@/data/upgradeCosts';
 
 const NO_ABILITIES: GainedAbilities = {
   knight: false,
@@ -10,7 +12,7 @@ const NO_ABILITIES: GainedAbilities = {
 function makePiece(
   id: number,
   type: Piece['type'],
-  color: Piece['color'],
+  color: Color,
   row: number,
   col: number,
   overrides?: Partial<Piece>,
@@ -32,46 +34,38 @@ function makePiece(
   };
 }
 
-function makeBeastWhite(): Piece[] {
-  return [
-    makePiece(1, 'BoulderThrower', 'White', 0, 0),
-    makePiece(2, 'BeastKnight', 'White', 0, 1),
-    makePiece(3, 'BeastDruid', 'White', 0, 2),
-    makePiece(4, 'QueenOfDomination', 'White', 0, 3),
-    makePiece(5, 'FrogKing', 'White', 0, 4),
-    makePiece(6, 'BeastDruid', 'White', 0, 5),
-    makePiece(7, 'BeastKnight', 'White', 0, 6),
-    makePiece(8, 'BoulderThrower', 'White', 0, 7),
-    ...Array.from({ length: 8 }, (_, i) =>
-      makePiece(9 + i, 'PawnHopper', 'White', 1, i),
-    ),
-  ];
+function buildArmy(config: ArmyConfig, color: Color, idOffset: number): Piece[] {
+  const backRow = color === 'White' ? 0 : 7;
+  const pawnRow = color === 'White' ? 1 : 6;
+  const mapping = GUILD_PIECES[config.guild];
+  const pieces: Piece[] = [];
+
+  for (let i = 0; i < 8; i++) {
+    const slot = config.slots[i];
+    const type = slot.upgraded ? mapping[slot.role] : slot.role;
+    const overrides: Partial<Piece> = {};
+    if (type === 'GhoulKing') overrides.raisesLeft = 1;
+    pieces.push(makePiece(idOffset + i, type, color, backRow, i, overrides));
+  }
+
+  for (let i = 0; i < 8; i++) {
+    const slot = config.slots[8 + i];
+    const type = slot.upgraded ? mapping[slot.role] : slot.role;
+    pieces.push(makePiece(idOffset + 8 + i, type, color, pawnRow, i));
+  }
+
+  return pieces;
 }
 
-function makeWizardBlack(): Piece[] {
-  return [
-    makePiece(17, 'Portal', 'Black', 7, 0),
-    makePiece(18, 'Familiar', 'Black', 7, 1),
-    makePiece(19, 'WizardTower', 'Black', 7, 2),
-    makePiece(20, 'QueenOfIllusions', 'Black', 7, 3),
-    makePiece(21, 'WizardKing', 'Black', 7, 4),
-    makePiece(22, 'WizardTower', 'Black', 7, 5),
-    makePiece(23, 'Familiar', 'Black', 7, 6),
-    makePiece(24, 'Portal', 'Black', 7, 7),
-    ...Array.from({ length: 8 }, (_, i) =>
-      makePiece(25 + i, 'YoungWiz', 'Black', 6, i),
-    ),
-  ];
-}
-
-export function createInitialState(): GameState {
+export function createInitialState(p1Army: ArmyConfig, p2Army: ArmyConfig): GameState {
   return {
-    pieces: [...makeBeastWhite(), ...makeWizardBlack()],
+    pieces: [...buildArmy(p1Army, 'White', 1), ...buildArmy(p2Army, 'Black', 17)],
     capturedPieces: [],
     currentTurn: 'White',
     selectedSquare: null,
     highlights: [],
     abilityMode: { type: 'none' },
     status: { type: 'active' },
+    armyConfigs: { p1: p1Army, p2: p2Army },
   };
 }

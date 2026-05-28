@@ -1,12 +1,11 @@
 import { gameReducer } from '@/engine/gameReducer';
-import { createInitialState } from '@/engine/initialBoard';
-import { makePiece, makeState, resetIds } from './testHelpers';
+import { makePiece, makeState, resetIds, createTestState } from './testHelpers';
 
 beforeEach(() => resetIds());
 
 describe('capturedPieces tracking', () => {
   it('starts empty', () => {
-    const state = createInitialState();
+    const state = createTestState();
     expect(state.capturedPieces).toEqual([]);
   });
 

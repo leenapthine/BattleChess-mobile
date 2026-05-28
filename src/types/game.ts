@@ -103,6 +103,7 @@ export type GameState = {
   highlights: Highlight[];
   abilityMode: AbilityMode;
   status: GameStatus;
+  armyConfigs?: { p1: import('@/types/army').ArmyConfig; p2: import('@/types/army').ArmyConfig };
 };
 
 export type GameAction =

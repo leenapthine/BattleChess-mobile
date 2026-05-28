@@ -1,12 +1,18 @@
 import { View, StyleSheet, useWindowDimensions } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import type { ArmyConfig } from '@/types/army';
 import { useGame } from './useGame';
 import { GameHeader } from './GameHeader';
 import { GameView } from './GameView';
 import { SpriteInfoCard } from '@/components/SpriteInfoCard';
 import { COLORS } from '@/constants/theme';
 
-export function GameScreen() {
+type Props = {
+  p1Army: ArmyConfig;
+  p2Army: ArmyConfig;
+};
+
+export function GameScreen({ p1Army, p2Army }: Props) {
   const {
     pieces,
     currentTurn,
@@ -19,7 +25,7 @@ export function GameScreen() {
     flashMessage,
     onSquarePress,
     onNewGame,
-  } = useGame();
+  } = useGame({ p1Army, p2Army });
 
   const { width, height } = useWindowDimensions();
   const cardHeight = 90;
