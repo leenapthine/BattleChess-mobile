@@ -2,7 +2,8 @@
 
 > A fantasy chess variant with 4 guilds, each with 6 unique units and special abilities.  
 > Mobile app: Expo (React Native) + TypeScript  
-> Backend: Supabase (planned)
+> Backend: Supabase (anonymous auth, realtime multiplayer working)  
+> State: Zustand (app-wide) + useReducer (game engine)
 
 ---
 
@@ -35,35 +36,50 @@
 ```
 src/
 ├── engine/                      # Pure TS game logic — zero React imports
-│   ├── gameReducer.ts           # Central reducer: (state, action) → newState
-│   ├── initialBoard.ts          # Default starting layout (Necro vs Demon)
-│   ├── utils.ts                 # getPieceAt, isOpponent, isInBounds, etc.
+│   ├── gameReducer.ts           # Central reducer with comments by section
+│   ├── initialBoard.ts          # createInitialState(p1Army, p2Army)
+│   ├── pieceTraits.ts           # SELF_CLICK_TYPES, opponentColor()
+│   ├── utils.ts                 # getPieceAt, isInBounds, generateId, etc.
 │   ├── helpers/
-│   │   └── moveHelpers.ts       # Sliding/step move generators shared across pieces
-│   └── pieces/
-│       ├── index.ts             # Registry mapping PieceType → module
-│       ├── Pawn.ts .. King.ts   # Basic pieces
-│       ├── NecroPawn.ts .. QueenOfBones.ts   # Necromancer guild
-│       ├── HellPawn.ts .. QueenOfDestruction.ts  # Demon guild
-│       ├── PawnHopper.ts .. QueenOfDomination.ts # Beast guild
-│       └── YoungWiz.ts .. QueenOfIllusions.ts    # Wizard guild
-├── screens/                     # Each screen: Header/View/Hook split
-│   ├── Game/                    # Main game board (fully wired)
-│   │   ├── index.tsx            # Composition root
-│   │   ├── useGame.ts           # Hook: reducer + classifyAction dispatch
-│   │   ├── GameView.tsx         # Board grid, highlights, win overlay
-│   │   └── GameHeader.tsx       # Turn label + ability-mode instructions
-│   └── ArmyBuilder/             # Guild/race selection (placeholder)
-├── components/                  # Shared UI components
-│   └── CapturedPieces.tsx       # Graveyard sprite row
-├── hooks/                       # Shared hooks
-├── navigation/                  # Navigation config
+│   │   ├── moveHelpers.ts       # Sliding/step move generators
+│   │   ├── captureHandler.ts    # Generic capture, QoB revival check
+│   │   ├── captureDispatch.ts   # Piece-specific capture (WizardTower, HellKing, etc.)
+│   │   ├── turnManager.ts       # switchTurn, applyPostMoveEffects
+│   │   ├── classifyAction.ts    # Tap → action classifier
+│   │   └── abilityHandlers.ts   # Sacrifice, resurrection, loading, launch, etc.
+│   └── pieces/                  # One file per piece type
+├── lib/                         # Pure API functions (no React)
+│   ├── supabase.ts              # Client with AsyncStorage session persistence
+│   ├── auth.ts                  # signInAnonymously, getProfile, createProfile
+│   └── games.ts                 # CRUD + subscriptions for games table
+├── stores/                      # Zustand stores
+│   ├── authStore.ts             # Auth status, profile, sign in/out
+│   ├── screenStore.ts           # App navigation state machine
+│   └── gamesStore.ts            # Open games, current game, subscriptions
+├── screens/                     # Header/View/Hook split for non-trivial screens
+│   ├── SignIn/                  # Anonymous sign-in
+│   ├── NamePrompt/              # Display name prompt
+│   ├── Lobby/                   # Browse local vs online + open games
+│   ├── PointCap/                # Set point budget
+│   ├── WaitingRoom/             # Host waiting for guest
+│   ├── ArmyBuilder/             # Local pass-and-play army selection
+│   ├── Handoff/                 # "Pass device" interstitial
+│   ├── OnlineArmyBuilder/       # Online army selection (writes to DB)
+│   ├── Game/                    # Local game board
+│   └── OnlineGame/              # Synced online game board
+├── components/
+│   ├── CapturedPieces.tsx       # Graveyard (currently removed from UI)
+│   └── SpriteInfoCard.tsx       # Piece info card
 ├── types/
-│   └── game.ts                  # Core types: Piece, GameState, GameAction, etc.
-├── utils/                       # Shared utility functions
-└── constants/                   # App-wide constants
-    ├── theme.ts                 # Board colors, highlight colors, app palette
-    └── sprites.ts               # Sprite map: getSprite(color, type) → ImageSource
+│   ├── game.ts                  # Piece, GameState, GameAction, AbilityMode
+│   └── army.ts                  # Guild, BasicRole, ArmyConfig, BOARD_SLOTS
+├── data/
+│   ├── pieceDescriptions.ts     # Ability descriptions per piece type
+│   └── upgradeCosts.ts          # UPGRADE_COSTS, GUILD_PIECES, GUILDS
+├── constants/
+│   ├── theme.ts                 # Homebrew colors + FONT
+│   └── sprites.ts               # Sprite map: getSprite(color, type)
+└── assets/sprites/              # 60 PNGs at 128×128 (nearest-neighbor upscaled)
 ```
 
 ---
@@ -72,12 +88,15 @@ src/
 
 | Layer | Technology |
 |---|---|
-| Framework | Expo (React Native) — iOS, Android, Web |
+| Framework | Expo SDK 54 (React Native) — iOS, Android, Web |
 | Language | TypeScript (strict mode) |
 | Game state | Pure reducer (`gameReducer.ts`) |
+| App state | Zustand stores (auth, screen, games) |
 | Board UI | React Native Pressable grid (8×8, White at bottom) |
-| Backend | Supabase (planned) |
-| Multiplayer | Supabase Realtime (planned) |
+| Font | Space Mono via `@expo-google-fonts/space-mono` |
+| Backend | Supabase Postgres + Realtime |
+| Auth | Anonymous sign-in (Apple Sign In planned) |
+| Multiplayer | Active player writes GameState to DB; opponent receives via Realtime |
 
 ---
 
@@ -97,24 +116,31 @@ Each guild's units inherit the **movement rules** of their chess equivalent, the
 
 ## Starting Configuration
 
-The game currently hardcodes two teams:
+Players build their armies before the game starts using the **Army Builder**. Each player:
 
-- **White (rows 0–1):** Necromancer Guild
-- **Black (rows 6–7):** Demon Guild
+1. Picks one of the 4 guilds (Necro, Demon, Beast, Wizard) — locked for the game
+2. Spends points from a shared budget (default 100) to upgrade individual pieces from basic chess types to guild variants
+3. Confirms — opponent doesn't see the army until the game starts
 
-The BeastMaster and Wizard guilds have full sprite assets and complete logic, but are **not placed in the default starting lineup**. They exist as selectable alternatives for the future army-builder feature.
+`createInitialState(p1Army, p2Army)` builds the board from two `ArmyConfig` objects. Each config has a guild and 16 slots in board order:
 
-### White Starting Lineup (row 0, left to right)
-`DeadLauncher | GhostKnight | Necromancer | QueenOfBones | GhoulKing | Necromancer | GhostKnight | DeadLauncher`
+```
+Slots 0-7  (back row):  Rook | Knight | Bishop | Queen | King | Bishop | Knight | Rook
+Slots 8-15 (pawn row):  Pawn × 8
+```
 
-### White Pawns (row 1)
-`NecroPawn × 8`
+Each slot is either basic (no points spent) or upgraded to the guild equivalent. Upgrade costs and piece mappings live in `src/data/upgradeCosts.ts`.
 
-### Black Starting Lineup (row 7, left to right)
-`Beholder | Prowler | Howler | QueenOfDestruction | HellKing | Howler | Prowler | Beholder`
+### Upgrade Cost Tables
 
-### Black Pawns (row 6)
-`HellPawn × 8`
+| Pawn → | Necro | Demon | Beast | Wizard |
+|---|---|---|---|---|
+| Pawn upgrade | 8 (NecroPawn) | 10 (HellPawn) | 7 (PawnHopper) | 7 (YoungWiz) |
+| Knight upgrade | 18 (GhostKnight) | 26 (Prowler) | 10 (BeastKnight) | 12 (Familiar) |
+| Bishop upgrade | 10 (Necromancer) | 20 (Howler) | 15 (BeastDruid) | 16 (WizardTower) |
+| Rook upgrade | 12 (DeadLauncher) | 20 (Beholder) | 16 (BoulderThrower) | 16 (Portal) |
+| Queen upgrade | 28 (QueenOfBones) | 32 (QueenOfDestruction) | 30 (QueenOfDomination) | 26 (QueenOfIllusions) |
+| King upgrade | 12 (GhoulKing) | 20 (HellKing) | 18 (FrogKing) | 24 (WizardKing) |
 
 ---
 
@@ -131,6 +157,7 @@ All game state is a single immutable `GameState` object managed by a pure reduce
 | `highlights` | `Highlight[]` | Tiles currently highlighted (move, capture, ability, preview, range) |
 | `abilityMode` | `AbilityMode` | Discriminated union tracking multi-step ability flows (sacrifice, resurrection, loading, launch, boulder, domination, secondMove, sacrificeSelection) |
 | `status` | `GameStatus` | Active game or winner declared |
+| `armyConfigs` | `{ p1, p2 }` | Stored for RESET_GAME to restart with the same armies |
 
 ---
 
@@ -155,6 +182,28 @@ Sprites live in `assets/sprites/{Color}{Type}.png` — e.g. `WhiteNecromancer.pn
 - **Header** — shows current turn, ability-mode instructions, and flash messages (e.g. "Familiar turned to stone!")
 - **Win overlay** — appears on king capture with winner text and "New Game" button
 - **Captured pieces graveyard** — fixed-height sprite rows above/below the board per color; Portal-loaded pieces excluded from graveyard until last friendly Portal is captured
+
+---
+
+## Multiplayer
+
+Two-player games can run in two modes:
+
+### Local (pass-and-play)
+Both players take turns on the same device. Player 1 builds army → "hand to Player 2" interstitial → Player 2 builds → game starts. State lives in `useReducer` only.
+
+### Online (Supabase realtime)
+Each player has their own device. Flow:
+
+1. **Sign in** — anonymous Supabase auth, prompted for display name on first sign-in (stored in `profiles` table)
+2. **Lobby** — host creates a game (point cap), guest browses open games and joins
+3. **Army selection** — both players use `OnlineArmyBuilder`, each writes their `ArmyConfig` to `games.host_army` / `games.guest_army`
+4. **Game starts** — when both armies are submitted, the host calls `startGame` which initializes `GameState` and flips status to `'active'`
+5. **Gameplay** — active player runs the reducer locally, writes the new `GameState` to `games.game_state`. The other player subscribes via Supabase Realtime and receives state updates
+6. **Reconnection** — on app start, `restoreMyGame` queries for any active game the user is in and resumes
+7. **Cleanup** — lobby filters games >10min old; host's stale waiting games auto-deleted on app start
+
+The full schema is in `supabase/schema.sql`. RLS is enabled on all tables.
 
 ---
 
@@ -726,10 +775,13 @@ All bugs from the original codebase have been addressed during the engine port.
 
 ## Features Not Yet Implemented
 
-- **Army builder / guild selection** — Choose guilds before game start (Phase 5)
 - **Checkmate / stalemate** — Only king-capture exists; proper check/checkmate deferred (Phase 6)
+- **Apple Sign In** — Currently anonymous only; Apple Sign In integration pending dev account
+- **Resign button** — No way to forfeit a game mid-play
+- **Idle timeout** — Players can stall indefinitely (60s timeout planned)
+- **Lobby chat** — Schema exists; UI not built
 - **Pawn promotion** — Pawns reaching the far rank do nothing
-- **Multiplayer** — Supabase Realtime sync (Phase 7)
+- **Graveyard UI** — Captures tracked in state but no visual; pending redesign
 - **Turn timer** — No clock or time pressure
 - **Move history / undo** — No undo or replay
 - **AI opponent** — No single-player mode
@@ -739,4 +791,4 @@ All bugs from the original codebase have been addressed during the engine port.
 
 ---
 
-*Last updated: 2026-05-27 — Phase 4 complete, Homebrew terminal theme + sprite info cards, 293 tests across 31 suites*
+*Last updated: 2026-05-28 — Phase 5 (Army Builder) + Phase 7 (Online Multiplayer) complete. 379 tests across 36 suites.*

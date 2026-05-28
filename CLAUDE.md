@@ -5,55 +5,89 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-npm start        # start Expo dev server
-npm run ios      # start on iOS simulator
-npm run android  # start on Android emulator
-npm run web      # start in browser
+npm start                              # start Expo dev server
+npm run ios                            # build + install on iOS simulator
+npx expo run:ios --device <UDID>       # build + install on physical device
+npm run web                            # start in browser
+npm test                               # run Jest test suite (379 tests)
 ```
 
-TypeScript strict mode enabled.
+TypeScript strict mode enabled. Uses Expo SDK 54 (compatible with Xcode 16.4).
 
-```bash
-npm test         # run Jest test suite (293 tests)
-```
+## Stack
+
+- **Expo SDK 54 / React Native** — iOS + Android + Web from one codebase
+- **TypeScript** strict mode
+- **Zustand** — app-wide state (auth, screen, lobby, games)
+- **useReducer** — game engine state (kept local because the reducer is pure)
+- **Supabase** — Postgres + Realtime for multiplayer (anonymous auth for now)
+- **Space Mono** — monospace font via `@expo-google-fonts/space-mono`
+
+Bundle ID: `com.leenapthine.battlechess`
 
 ## Architecture
 
-Expo (React Native) app with TypeScript. Game state managed by a pure reducer.
+Three architectural layers:
+
+1. **Engine** (`src/engine/`) — pure TypeScript, zero React, zero side effects. The game reducer and all piece modules.
+2. **Lib** (`src/lib/`) — pure API functions for external services (Supabase). Zero React.
+3. **Stores** (`src/stores/`) — Zustand stores that wrap lib calls with state. Components subscribe via hooks. NEVER consume Zustand inside library files or piece modules.
 
 ### Folder structure
 
-- `src/engine/` — pure TS game logic. Zero React imports.
-- `src/engine/pieces/` — one file per piece type, each exports `getValidMoves` (and optionally `getAbilityTargets`)
-- `src/engine/helpers/` — shared move generation helpers
-- `src/engine/utils.ts` — board queries and immutable update helpers
-- `src/engine/gameReducer.ts` — central reducer handling all actions + captured piece tracking
-- `src/engine/initialBoard.ts` — default starting layout (currently Beast vs Wizard)
-- `src/screens/` — each screen is a folder with Header/View/Hook split
-- `src/screens/Game/` — main game board (Header/View/Hook, fully wired)
-- `src/screens/ArmyBuilder/` — guild/race selection (placeholder)
-- `src/components/` — shared UI components
-- `src/components/CapturedPieces.tsx` — graveyard display for captured pieces
-- `src/hooks/` — shared hooks
-- `src/navigation/` — navigation config
-- `src/types/game.ts` — core types: `Piece`, `GameState`, `GameAction`, `AbilityMode`
-- `src/utils/` — shared utility functions
-- `src/constants/theme.ts` — board colors, highlight colors, app palette (Homebrew terminal theme)
-- `src/constants/sprites.ts` — sprite map: `getSprite(color, type) → ImageSource`
-- `src/data/pieceDescriptions.ts` — ability descriptions for all 30 piece types
-- `assets/sprites/` — 60 PNGs: `{Color}{Type}.png` (32x32 pixel art)
+```
+src/
+├── engine/                — pure game logic (no React)
+│   ├── gameReducer.ts     — central reducer
+│   ├── initialBoard.ts    — createInitialState(p1Army, p2Army)
+│   ├── pieceTraits.ts     — SELF_CLICK_TYPES, opponentColor()
+│   ├── pieces/            — one file per piece type
+│   └── helpers/           — moveHelpers, captureHandler, captureDispatch,
+│                            turnManager, classifyAction, abilityHandlers
+├── lib/                   — pure API (no React)
+│   ├── supabase.ts        — client setup with AsyncStorage persistence
+│   ├── auth.ts            — sign in, get/create profile
+│   └── games.ts           — create, join, submit army, write state,
+│                            subscribe to lobby/game, restore active
+├── stores/                — Zustand (no React imports beyond create)
+│   ├── authStore.ts       — auth status, profile, sign in/out
+│   ├── screenStore.ts     — navigation state machine
+│   └── gamesStore.ts      — open games list, current game, subscriptions
+├── screens/               — each screen is Header/View/Hook split
+│   ├── SignIn/            — anonymous sign-in
+│   ├── NamePrompt/        — display name on first sign-in
+│   ├── Lobby/             — pick local vs online, browse open games
+│   ├── PointCap/          — set point budget
+│   ├── WaitingRoom/       — host waits for guest to join
+│   ├── ArmyBuilder/       — local pass-and-play army selection
+│   ├── Handoff/           — "pass the device" interstitial (local mode)
+│   ├── OnlineArmyBuilder/ — online army selection (writes to DB)
+│   ├── Game/              — local game screen
+│   └── OnlineGame/        — synced online game screen
+├── components/
+│   ├── CapturedPieces.tsx — graveyard (currently removed from UI)
+│   └── SpriteInfoCard.tsx — piece info card
+├── types/
+│   ├── game.ts            — Piece, GameState, GameAction, AbilityMode
+│   └── army.ts            — Guild, BasicRole, ArmyConfig, BOARD_SLOTS
+├── data/
+│   ├── pieceDescriptions.ts  — ability descriptions
+│   └── upgradeCosts.ts    — UPGRADE_COSTS, GUILD_PIECES, GUILDS
+├── constants/
+│   ├── theme.ts           — Homebrew colors + FONT
+│   └── sprites.ts         — sprite map
+└── assets/sprites/        — 60 PNGs at 128×128 (nearest-neighbor upscaled)
+```
 
 ### Screen file structure (Header / View / Hook)
 
-Every screen folder contains:
+Every non-trivial screen folder contains:
 - `useFeature.ts` — all logic, state, handlers. Zero JSX.
 - `FeatureView.tsx` — pure presentational. Props only.
 - `FeatureHeader.tsx` — presentational header. Props only.
 - `index.tsx` — thin composition root wiring hook to views.
 
-### File size
-
-~150 lines soft cap per file. Extract helpers proactively.
+Simple screens (SignIn, NamePrompt, WaitingRoom, Handoff) skip the split and put everything in `index.tsx`.
 
 ### Engine design
 
@@ -61,39 +95,68 @@ All game logic is pure TypeScript — no React, no signals, no mutation.
 - Piece modules: `getValidMoves(piece, pieces) → Highlight[]`
 - State transitions: `gameReducer(state, action) → GameState`
 - Multi-step abilities tracked by `AbilityMode` discriminated union
+- Piece-specific capture dispatch in `captureDispatch.ts` (WizardTower stays put, HellKing converts, Prowler second move, etc.)
 
-### Game Screen UI
+### File size
 
-The board is an 8×8 grid of React Native `Pressable` squares. White renders at the bottom. Homebrew terminal aesthetic: black background, green text, Space Mono font throughout.
+~150 lines soft cap. Extract helpers proactively.
 
-- **Theme:** black background (#000000), green board squares (#2d8c2d / #1a6b1a), green text (#00ff00), monospace font (Space Mono)
-- **Highlights:** all highlights are thick inner square borders rendered under sprites
-- **Highlight colors:** green (selected piece), yellow (move), red (capture/death), blue (non-lethal ability), grey (range/preview)
-- **Selected piece with ability:** blue border when self-click ability available, green after activation
-- **Self-click pieces:** NecroPawn, GhoulKing, DeadLauncher, Beholder, BoulderThrower, Familiar, Portal, WizardKing — ability targets hidden until activated
-- **Sprite info cards:** tapping a piece shows an info card with sprite + ability description. Black pieces show card above board, White below. Descriptions in `src/data/pieceDescriptions.ts`
-- **Header:** shows current turn, ability-mode instructions, and flash messages (e.g. "Familiar turned to stone!")
-- **Win overlay:** dark overlay with winner text and green "New Game" button
-- **Graveyard:** temporarily removed from UI (captured pieces still tracked in state for future redesign)
+## Multiplayer
 
-### Engine progress
+End-to-end realtime over Supabase. Database is the source of truth.
 
-All 30 piece types ported. Reducer fully wired with piece-specific capture dispatch. All abilities manually tested on iOS simulator. Test suite: 293 tests across 31 suites. Phases 2–4 complete.
+- **Anonymous auth** — users get a UUID via `signInAnonymously()`, prompted for a display name on first sign-in
+- **Lobby** — `games` rows where status='waiting' are visible to all signed-in users; hosts can browse and join
+- **State sync model** — active player runs reducer locally, writes new `GameState` to `games.game_state` column. Other player subscribes via Supabase Realtime and receives updates.
+- **Army selection** — each player writes their own army to `host_army` / `guest_army` columns. When both are set, host calls `startGame` which initializes `game_state` and flips status to 'active'.
+- **Reconnection** — on app start, `restoreMyGame` queries for any non-finished game the user is part of and resumes
+- **Orphan cleanup** — lobby filters games >10min old; host's stale waiting games auto-deleted on app start
+- **Local pass-and-play** — still available as a mode; bypasses Supabase entirely
 
-- Engine (all pieces, reducer, helpers): done
-- Game screen UI (board, highlights, header, win overlay, graveyard): done
-- Piece-specific capture dispatch (WizardTower, HellKing, Prowler, Howler, HellPawn, YoungWiz): done
-- Self-click ability system (8 piece types): done
-- WizardKing reworked as self-click ranged ability (boulder mode): done
-- GhostKnight stun fixed (clears outgoing player, not incoming): done
-- Prowler second move (highlights, capture allowed, no forfeit on misclick): done
-- QoB revival from all kill paths (standard, ranged, AoE, detonation collateral): done
-- Stone immunity across all capture/highlight paths: done
-- Portal graveyard behavior (no graveyard on load, graveyard on last portal death): done
-- Highlight system (green/yellow/red/blue/grey borders, range indicators): done
-- Test suite (31 suites, 293 tests): done
-- iOS simulator verification: done
+Database schema lives in `supabase/schema.sql`. RLS is enabled on all tables.
 
-### Game reference
+## Visual design
+
+Homebrew terminal aesthetic — black background, bright green accents, monospace throughout. The board is an 8×8 grid of React Native `Pressable` squares with White at the bottom.
+
+- **Theme:** black bg (#000000), green board squares (#2d8c2d / #1a6b1a), green text (#00ff00), Space Mono font
+- **Highlights:** thick inner square borders rendered under sprites
+  - Green border — selected piece
+  - Blue border — selected piece has self-click ability available
+  - Yellow border — valid move
+  - Red border — capture or anything that will die (including friendly in blast)
+  - Grey border — range indicator on empty/friendly/stone squares (non-interactive)
+  - Grey lighter — preview (opponent piece range, read-only)
+- **Self-click pieces** hide ability targets until activated: NecroPawn, GhoulKing, DeadLauncher, Beholder, BoulderThrower, Familiar, Portal, WizardKing
+- **Sprite info cards** appear above (Black) or below (White) the board when a piece is tapped
+- **Header** shows current turn, ability-mode instructions, and flash messages
+- **Sprites** pre-upscaled to 128×128 with nearest-neighbor for pixel-perfect rendering at any size
+
+## Phase status
+
+| Phase | Status |
+|-------|--------|
+| 1 — Scaffold | done |
+| 2 — Game Engine (all 30 pieces, reducer, helpers) | done |
+| 3 — Test Suite | done |
+| 4 — Game Screen UI | done |
+| 5 — Army Builder + point-buy upgrades | done |
+| 6 — Check / Checkmate / Stalemate | deferred |
+| 7 — Supabase Multiplayer | done (anonymous; Apple Sign In pending) |
+
+### Test suite
+
+379 tests across 36 suites — pure engine logic, no React rendering tests yet.
+
+## Game reference
 
 See `GAME_OVERVIEW.md` for the full game design: all 4 guilds, 24 piece abilities, starting configurations, edge cases, and known bugs.
+
+## Environment
+
+Requires `.env` at repo root with:
+```
+EXPO_PUBLIC_SUPABASE_URL=https://...supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_...
+```
+See `.env.example` for template. NEVER commit `.env` (gitignored) or the secret key.
