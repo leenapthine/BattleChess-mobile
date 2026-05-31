@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import type { ArmyConfig } from '@/types/army';
-import type { GameState } from '@/types/game';
+import type { Color, GameState, WinReason } from '@/types/game';
 
 export type GameStatus = 'waiting' | 'army_select' | 'active' | 'finished' | 'abandoned';
 
@@ -176,10 +176,30 @@ export async function writeGameState(
   if (error) throw error;
 }
 
-export async function timeoutLoss(gameId: string, winnerId: string): Promise<void> {
+// Ends an online game and embeds the win info into game_state so both
+// clients render the win overlay. Safe for both clients to call — the
+// update is idempotent for already-finished games.
+export async function endOnlineGame(
+  gameId: string,
+  state: GameState,
+  winnerColor: Color,
+  winnerId: string,
+  reason: WinReason,
+): Promise<void> {
+  const finalState: GameState = {
+    ...state,
+    status: { type: 'won', winner: winnerColor, reason },
+    selectedSquare: null,
+    highlights: [],
+    abilityMode: { type: 'none' },
+  };
   const { error } = await supabase
     .from('games')
-    .update({ status: 'finished', winner_id: winnerId })
+    .update({
+      status: 'finished',
+      winner_id: winnerId,
+      game_state: finalState,
+    })
     .eq('id', gameId);
   if (error) throw error;
 }

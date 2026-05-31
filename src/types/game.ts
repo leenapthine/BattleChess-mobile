@@ -91,9 +91,11 @@ export type AbilityMode =
   | { type: 'secondMove'; pieceId: string }
   | { type: 'sacrificeSelection'; queenColor: Color; sacrificeIds: string[]; pendingSecondMove: string | null };
 
+export type WinReason = 'kingCapture' | 'resign' | 'timeout';
+
 export type GameStatus =
   | { type: 'active' }
-  | { type: 'won'; winner: Color };
+  | { type: 'won'; winner: Color; reason?: WinReason };
 
 export type GameState = {
   pieces: Piece[];

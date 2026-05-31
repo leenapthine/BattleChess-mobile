@@ -88,6 +88,13 @@ export function GameView({ pieces, selectedSquare, selectedCanActivate, highligh
       })}
       {status.type === 'won' && (
         <View style={styles.overlay}>
+          {status.reason && (
+            <Text style={styles.reasonText}>
+              {status.reason === 'timeout' ? 'TIMEOUT' :
+               status.reason === 'resign' ? 'OPPONENT CONCEDED' :
+               null}
+            </Text>
+          )}
           <Text style={styles.winText}>{status.winner} wins!</Text>
           {onNewGame && (
             <Pressable style={styles.newGameBtn} onPress={onNewGame}>
@@ -126,6 +133,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.75)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  reasonText: {
+    color: '#ff3333',
+    fontSize: 14,
+    fontFamily: FONT.monoBold,
+    letterSpacing: 2,
+    marginBottom: 8,
   },
   winText: {
     color: COLORS.text,

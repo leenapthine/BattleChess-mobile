@@ -15,7 +15,7 @@ import { NamePromptScreen } from '@/screens/NamePrompt';
 import { useAuthStore } from '@/stores/authStore';
 import { useScreenStore } from '@/stores/screenStore';
 import { useGamesStore } from '@/stores/gamesStore';
-import { submitArmy, startGame, resignGame } from '@/lib/games';
+import { submitArmy, startGame, endOnlineGame } from '@/lib/games';
 import { createInitialState } from '@/engine/initialBoard';
 import { COLORS } from '@/constants/theme';
 
@@ -98,14 +98,17 @@ export default function App() {
       return;
     }
 
-    if (currentGame.status === 'active') {
+    if (currentGame.status === 'active' || currentGame.status === 'finished') {
+      // Both 'active' and 'finished' show the OnlineGameScreen so the win
+      // overlay (driven by game_state.status) is visible. The user clicks
+      // Main Menu to return to lobby.
       if (screen.type !== 'onlineGame') {
         goTo({ type: 'onlineGame', gameId: currentGame.id });
       }
       return;
     }
 
-    if (currentGame.status === 'finished' || currentGame.status === 'abandoned') {
+    if (currentGame.status === 'abandoned') {
       setCurrentGame(null);
       resetToLobby();
     }
@@ -256,26 +259,34 @@ export default function App() {
             setCurrentGame(null);
             resetToLobby();
           }}
-          onResign={() => {
-            if (!currentGame || !userId) return;
-            const winnerId = currentGame.host_id === userId
-              ? (currentGame.guest_id ?? userId)
-              : currentGame.host_id;
-            resignGame(currentGame.id, winnerId).catch(err =>
-              console.error('resignGame failed', err)
-            );
+          onResign={async () => {
+            if (!currentGame || !userId || !currentGame.game_state) return;
+            if (currentGame.status !== 'active') return;
+            // The player who taps Concede loses. Host is White, guest is Black.
+            const myColorComputed: 'White' | 'Black' = isHost ? 'White' : 'Black';
+            const winnerColor: 'White' | 'Black' = myColorComputed === 'White' ? 'Black' : 'White';
+            const winnerId = winnerColor === 'White'
+              ? currentGame.host_id
+              : currentGame.guest_id;
+            if (!winnerId) return;
+            try {
+              await endOnlineGame(currentGame.id, currentGame.game_state, winnerColor, winnerId, 'resign');
+            } catch (err: any) {
+              console.error('resignGame failed:', err?.message ?? err);
+            }
           }}
-          onTimeout={(loserColor) => {
-            if (!currentGame || !userId) return;
-            // Only the active player (whose timer ran out) writes — avoids duplicate writes
-            const myColorComputed = isHost ? 'White' : 'Black';
-            if (loserColor !== myColorComputed) return;
-            const winnerId = isHost
-              ? (currentGame.guest_id ?? currentGame.host_id)
-              : currentGame.host_id;
-            resignGame(currentGame.id, winnerId).catch(err =>
-              console.error('timeout resignGame failed', err)
-            );
+          onTimeout={async (loserColor) => {
+            if (!currentGame || !currentGame.game_state) return;
+            if (currentGame.status !== 'active') return;
+            const winnerColor: 'White' | 'Black' = loserColor === 'White' ? 'Black' : 'White';
+            // Host is White, guest is Black.
+            const winnerId = winnerColor === 'White' ? currentGame.host_id : currentGame.guest_id;
+            if (!winnerId) return;
+            try {
+              await endOnlineGame(currentGame.id, currentGame.game_state, winnerColor, winnerId, 'timeout');
+            } catch (err: any) {
+              console.error('timeout resignGame failed:', err?.message ?? err);
+            }
           }}
         />
       )}

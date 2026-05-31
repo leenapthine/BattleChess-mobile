@@ -21,12 +21,12 @@ export function useOnlineGame({
 }: Props) {
   const [state, setState] = useState<GameState>(initialState);
 
-  // Apply incoming remote updates (when it's the opponent's turn that moved)
-  // We diff by pieces+turn to avoid clobbering local selection state during inspection
+  // Apply incoming remote updates (opponent moved, or game ended).
+  // Diff by pieces + turn + status so resign/timeout transitions sync.
   useEffect(() => {
     if (!remoteState) return;
-    const remoteKey = `${remoteState.currentTurn}|${JSON.stringify(remoteState.pieces)}`;
-    const localKey = `${state.currentTurn}|${JSON.stringify(state.pieces)}`;
+    const remoteKey = `${remoteState.currentTurn}|${remoteState.status.type}|${JSON.stringify(remoteState.pieces)}`;
+    const localKey = `${state.currentTurn}|${state.status.type}|${JSON.stringify(state.pieces)}`;
     if (remoteKey !== localKey) {
       setState(remoteState);
     }
