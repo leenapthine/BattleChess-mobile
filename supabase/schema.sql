@@ -98,6 +98,25 @@ create policy "chat_read_all" on public.chat_messages
 create policy "chat_insert_own" on public.chat_messages
   for insert with check (auth.uid() = user_id);
 
+-- Rate limit: 1 message per 2 seconds per user, server-enforced
+create or replace function enforce_chat_rate_limit() returns trigger as $$
+begin
+  if exists (
+    select 1 from public.chat_messages
+    where user_id = new.user_id
+      and created_at > now() - interval '2 seconds'
+  ) then
+    raise exception 'rate limit: one message per 2 seconds';
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists chat_rate_limit on public.chat_messages;
+create trigger chat_rate_limit
+  before insert on public.chat_messages
+  for each row execute function enforce_chat_rate_limit();
+
 -- =========================================
 
 -- 4. AUTO-UPDATE updated_at on games

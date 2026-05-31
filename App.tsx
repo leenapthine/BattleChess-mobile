@@ -16,6 +16,7 @@ import { NamePromptScreen } from '@/screens/NamePrompt';
 import { useAuthStore } from '@/stores/authStore';
 import { useScreenStore } from '@/stores/screenStore';
 import { useGamesStore } from '@/stores/gamesStore';
+import { useChatStore } from '@/stores/chatStore';
 import { submitArmy, startGame, endOnlineGame } from '@/lib/games';
 import { createInitialState } from '@/engine/initialBoard';
 import { COLORS } from '@/constants/theme';
@@ -70,6 +71,17 @@ export default function App() {
       return () => stopLobbySub();
     }
   }, [authStatus, screen.type, fetchOpenGames, startLobbySub, stopLobbySub]);
+
+  // Chat: load history + open realtime channel while signed in
+  const loadChat = useChatStore((s) => s.loadInitial);
+  const startChatSub = useChatStore((s) => s.startSubscription);
+  const stopChatSub = useChatStore((s) => s.stopSubscription);
+  useEffect(() => {
+    if (authStatus !== 'ready') return;
+    loadChat();
+    startChatSub();
+    return () => stopChatSub();
+  }, [authStatus, loadChat, startChatSub, stopChatSub]);
 
   useEffect(() => {
     if (!currentGame) return;
