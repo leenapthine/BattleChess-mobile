@@ -1,7 +1,8 @@
 import { SafeAreaView, StyleSheet, ActivityIndicator, View, Alert } from 'react-native';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useFonts, SpaceMono_400Regular, SpaceMono_700Bold } from '@expo-google-fonts/space-mono';
 import type { ArmyConfig } from '@/types/army';
+import { TitleScreen } from '@/screens/Title';
 import { LobbyScreen } from '@/screens/Lobby';
 import { PointCapScreen } from '@/screens/PointCap';
 import { WaitingRoomScreen } from '@/screens/WaitingRoom';
@@ -114,10 +115,25 @@ export default function App() {
     }
   }, [currentGame, userId, screen.type, goTo, setCurrentGame, resetToLobby]);
 
-  if (!fontsLoaded || authStatus === 'loading') {
+  // Stay on the title screen until the user taps "PRESS ENTER".
+  const [titleDismissed, setTitleDismissed] = useState(false);
+
+  if (!fontsLoaded) {
+    // Fonts haven't loaded yet — minimal black screen with spinner
     return (
       <View style={styles.loading}>
         <ActivityIndicator color="#00ff00" />
+      </View>
+    );
+  }
+
+  if (!titleDismissed) {
+    return (
+      <View style={styles.container}>
+        <TitleScreen
+          ready={authStatus !== 'loading'}
+          onEnter={() => setTitleDismissed(true)}
+        />
       </View>
     );
   }
