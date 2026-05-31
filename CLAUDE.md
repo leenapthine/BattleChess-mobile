@@ -9,7 +9,7 @@ npm start                              # start Expo dev server
 npm run ios                            # build + install on iOS simulator
 npx expo run:ios --device <UDID>       # build + install on physical device
 npm run web                            # start in browser
-npm test                               # run Jest test suite (379 tests)
+npm test                               # run Jest test suite (388 tests)
 ```
 
 TypeScript strict mode enabled. Uses Expo SDK 54 (compatible with Xcode 16.4).
@@ -47,16 +47,19 @@ src/
 ├── lib/                   — pure API (no React)
 │   ├── supabase.ts        — client setup with AsyncStorage persistence
 │   ├── auth.ts            — sign in, get/create profile
-│   └── games.ts           — create, join, submit army, write state,
-│                            subscribe to lobby/game, restore active
+│   ├── games.ts           — create, join, submit army, write state,
+│   │                        subscribe to lobby/game, restore active
+│   └── chat.ts            — lobby chat: fetch / send / subscribe
 ├── stores/                — Zustand (no React imports beyond create)
 │   ├── authStore.ts       — auth status, profile, sign in/out
 │   ├── screenStore.ts     — navigation state machine
-│   └── gamesStore.ts      — open games list, current game, subscriptions
+│   ├── gamesStore.ts      — open games list, current game, subscriptions
+│   └── chatStore.ts       — chat history, unread counter, subscription
 ├── screens/               — each screen is Header/View/Hook split
+│   ├── Title/             — retro 1980s boot screen with random sprite
 │   ├── SignIn/            — anonymous sign-in
 │   ├── NamePrompt/        — display name on first sign-in
-│   ├── Lobby/             — pick local vs online, browse open games
+│   ├── Lobby/             — chat panel + new game buttons + open games list
 │   ├── PointCap/          — set point budget
 │   ├── WaitingRoom/       — host waits for guest to join
 │   ├── ArmyBuilder/       — local pass-and-play army selection
@@ -66,12 +69,15 @@ src/
 │   └── OnlineGame/        — synced online game screen
 ├── components/
 │   ├── CapturedPieces.tsx — graveyard (currently removed from UI)
+│   ├── ConcedeButton.tsx  — concede with confirm modal
+│   ├── PlayerTimer.tsx    — per-player clock (ticks during own turn)
 │   └── SpriteInfoCard.tsx — piece info card
 ├── types/
-│   ├── game.ts            — Piece, GameState, GameAction, AbilityMode
+│   ├── game.ts            — Piece, GameState, GameAction, AbilityMode, WinReason
 │   └── army.ts            — Guild, BasicRole, ArmyConfig, BOARD_SLOTS
 ├── data/
-│   ├── pieceDescriptions.ts  — ability descriptions
+│   ├── pieceDescriptions.ts  — single-line ability descriptions (info cards)
+│   ├── pieceDetails.ts       — bulleted movement + ability lists (title screen)
 │   └── upgradeCosts.ts    — UPGRADE_COSTS, GUILD_PIECES, GUILDS
 ├── constants/
 │   ├── theme.ts           — Homebrew colors + FONT
@@ -112,6 +118,9 @@ End-to-end realtime over Supabase. Database is the source of truth.
 - **Reconnection** — on app start, `restoreMyGame` queries for any non-finished game the user is part of and resumes
 - **Orphan cleanup** — lobby filters games >10min old; host's stale waiting games auto-deleted on app start
 - **Local pass-and-play** — still available as a mode; bypasses Supabase entirely
+- **Per-player clocks** — `host_time_ms` / `guest_time_ms` columns hold each player's time bank; active player's clock ticks down, hitting 0 = timeout loss
+- **Win reasons** — `game_state.status` carries `reason: 'kingCapture' | 'resign' | 'timeout'` so the overlay can show the right banner
+- **Lobby chat** — `chat_messages` table backs a global terminal-style chat panel on the lobby screen; server-side trigger enforces 1 message / 2 sec rate limit
 
 Database schema lives in `supabase/schema.sql`. RLS is enabled on all tables.
 
@@ -143,10 +152,13 @@ Homebrew terminal aesthetic — black background, bright green accents, monospac
 | 5 — Army Builder + point-buy upgrades | done |
 | 6 — Check / Checkmate / Stalemate | deferred |
 | 7 — Supabase Multiplayer | done (anonymous; Apple Sign In pending) |
+| 7.1 — Concede / timeouts / win reasons | done |
+| 7.2 — Retro title/loading screen | done |
+| 7.3 — Global lobby chat | done |
 
 ### Test suite
 
-379 tests across 36 suites — pure engine logic, no React rendering tests yet.
+388 tests across 38 suites — pure engine logic + data completeness checks, no React rendering tests yet.
 
 ## Game reference
 

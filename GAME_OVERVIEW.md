@@ -180,8 +180,12 @@ Sprites live in `assets/sprites/{Color}{Type}.png` — e.g. `WhiteNecromancer.pn
 
 **Additional UI:**
 - **Header** — shows current turn, ability-mode instructions, and flash messages (e.g. "Familiar turned to stone!")
-- **Win overlay** — appears on king capture with winner text and "New Game" button
+- **Win overlay** — appears on king capture / resign / timeout; shows reason banner, winner text, and `New Game` + `Main Menu` buttons
+- **Per-player clocks** — small timer cards flanking the turn bar (online games only); active player's clock ticks down each turn
+- **Concede button** — sits below the sprite-info area in active games; opens a confirm modal
 - **Captured pieces graveyard** — fixed-height sprite rows above/below the board per color; Portal-loaded pieces excluded from graveyard until last friendly Portal is captured
+- **Title screen** — retro 1980s home-computer boot screen shown on cold launch with a randomly-selected piece as the centerpiece (see `src/screens/Title/`)
+- **Lobby chat** — fixed-height terminal-style chat panel at the top of the lobby, above the new-game buttons and open-games list
 
 ---
 
@@ -202,6 +206,15 @@ Each player has their own device. Flow:
 5. **Gameplay** — active player runs the reducer locally, writes the new `GameState` to `games.game_state`. The other player subscribes via Supabase Realtime and receives state updates
 6. **Reconnection** — on app start, `restoreMyGame` queries for any active game the user is in and resumes
 7. **Cleanup** — lobby filters games >10min old; host's stale waiting games auto-deleted on app start
+
+#### Per-player clocks
+Each online game can opt in to a total-time budget (10 / 20 / 30 / 45 / 60 min, or unlimited). The active player's clock ticks down during their turn. Hitting 0 ends the game with `reason: 'timeout'`.
+
+#### End-of-game reasons
+`game_state.status` carries `reason: 'kingCapture' | 'resign' | 'timeout'`. The win overlay renders the matching banner (`OPPONENT CONCEDED`, `TIMEOUT`, etc.) plus `New Game` and `Main Menu` buttons.
+
+#### Lobby chat
+A global terminal-style chat room sits at the top of the lobby screen, backed by a `chat_messages` table and a Supabase Realtime channel. A trigger enforces a 1-message-per-2-seconds rate limit per user; client caps each message at 300 chars.
 
 The full schema is in `supabase/schema.sql`. RLS is enabled on all tables.
 
