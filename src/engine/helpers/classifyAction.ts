@@ -6,7 +6,7 @@ export function classifyAction(
   square: Square,
   state: GameState,
 ): GameAction {
-  const { selectedSquare, highlights, abilityMode, currentTurn, pieces } = state;
+  const { selectedSquare, highlights, abilityMode, pieces } = state;
   const clickedPiece = getPieceAt(square, pieces);
 
   if (abilityMode.type !== 'none') {
@@ -38,7 +38,9 @@ export function classifyAction(
       return { type: 'MOVE_PIECE', from: selectedSquare, to: square };
     }
 
-    if (clickedPiece && clickedPiece.color === currentTurn) {
+    // Tapping any piece (own OR opponent) switches selection directly
+    // so the user can inspect enemies without an extra deselect-then-tap step.
+    if (clickedPiece) {
       return { type: 'SELECT_SQUARE', square };
     }
 

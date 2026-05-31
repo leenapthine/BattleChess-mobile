@@ -159,6 +159,28 @@ describe('classifyAction', () => {
     const action = classifyAction({ row: 0, col: 0 }, state);
     expect(action.type).toBe('SELECT_SQUARE');
   });
+
+  it('SELECT_SQUARE when clicking opponent piece NOT on a highlight (switches selection)', () => {
+    const myPawn = makePiece('Pawn', 'White', 1, 0);
+    const farEnemy = makePiece('Rook', 'Black', 7, 7);
+    const state = makeState([myPawn, farEnemy], {
+      selectedSquare: { row: 1, col: 0 },
+      highlights: [{ row: 2, col: 0, color: 'move' }],
+    });
+    const action = classifyAction({ row: 7, col: 7 }, state);
+    expect(action.type).toBe('SELECT_SQUARE');
+  });
+
+  it('MOVE_PIECE (capture) when clicking opponent piece on a capture highlight', () => {
+    const myPawn = makePiece('Pawn', 'White', 1, 0);
+    const enemy = makePiece('Pawn', 'Black', 2, 1);
+    const state = makeState([myPawn, enemy], {
+      selectedSquare: { row: 1, col: 0 },
+      highlights: [{ row: 2, col: 1, color: 'capture' }],
+    });
+    const action = classifyAction({ row: 2, col: 1 }, state);
+    expect(action.type).toBe('MOVE_PIECE');
+  });
 });
 
 describe('gameReducer', () => {
