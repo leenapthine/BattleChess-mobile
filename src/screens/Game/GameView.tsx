@@ -10,10 +10,11 @@ type Props = {
   highlights: Highlight[];
   status: GameStatus;
   onSquarePress: (square: Square) => void;
-  onNewGame: () => void;
+  onNewGame?: () => void;
+  onMainMenu?: () => void;
 };
 
-export function GameView({ pieces, selectedSquare, selectedCanActivate, highlights, status, onSquarePress, onNewGame }: Props) {
+export function GameView({ pieces, selectedSquare, selectedCanActivate, highlights, status, onSquarePress, onNewGame, onMainMenu }: Props) {
   const { width } = useWindowDimensions();
   const boardSize = Math.min(width - 16, 400);
   const tileSize = boardSize / 8;
@@ -88,9 +89,16 @@ export function GameView({ pieces, selectedSquare, selectedCanActivate, highligh
       {status.type === 'won' && (
         <View style={styles.overlay}>
           <Text style={styles.winText}>{status.winner} wins!</Text>
-          <Pressable style={styles.newGameBtn} onPress={onNewGame}>
-            <Text style={styles.newGameText}>New Game</Text>
-          </Pressable>
+          {onNewGame && (
+            <Pressable style={styles.newGameBtn} onPress={onNewGame}>
+              <Text style={styles.newGameText}>New Game</Text>
+            </Pressable>
+          )}
+          {onMainMenu && (
+            <Pressable style={styles.menuBtn} onPress={onMainMenu}>
+              <Text style={styles.menuText}>Main Menu</Text>
+            </Pressable>
+          )}
         </View>
       )}
     </View>
@@ -134,6 +142,19 @@ const styles = StyleSheet.create({
   newGameText: {
     color: '#000000',
     fontSize: 16,
+    fontFamily: FONT.monoBold,
+  },
+  menuBtn: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: 28,
+    paddingVertical: 12,
+    borderRadius: 4,
+    marginTop: 10,
+  },
+  menuText: {
+    color: COLORS.text,
+    fontSize: 14,
     fontFamily: FONT.monoBold,
   },
 });

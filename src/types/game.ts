@@ -112,4 +112,5 @@ export type GameAction =
   | { type: 'ABILITY_ACTION'; square: Square }
   | { type: 'END_TURN' }
   | { type: 'DESELECT' }
-  | { type: 'RESET_GAME' };
+  | { type: 'RESET_GAME' }
+  | { type: 'RESIGN'; resigningColor: Color };

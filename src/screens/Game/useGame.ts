@@ -30,6 +30,10 @@ export function useGame({ p1Army, p2Army }: Props) {
     dispatch({ type: 'RESET_GAME' });
   }, []);
 
+  const onResign = useCallback(() => {
+    dispatch({ type: 'RESIGN', resigningColor: state.currentTurn });
+  }, [state.currentTurn]);
+
   const selectedPiece = useMemo(() => {
     if (!state.selectedSquare) return null;
     return state.pieces.find(
@@ -81,5 +85,6 @@ export function useGame({ p1Army, p2Army }: Props) {
     flashMessage,
     onSquarePress,
     onNewGame,
+    onResign,
   };
 }

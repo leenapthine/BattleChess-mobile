@@ -1,13 +1,25 @@
-import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useState } from 'react';
 import { COLORS, FONT } from '@/constants/theme';
 
+type TimerOption = { label: string; seconds: number | null };
+
+const TIMER_OPTIONS: TimerOption[] = [
+  { label: '∞',   seconds: null },
+  { label: '10m', seconds: 600 },
+  { label: '20m', seconds: 1200 },
+  { label: '30m', seconds: 1800 },
+  { label: '45m', seconds: 2700 },
+  { label: '60m', seconds: 3600 },
+];
+
 type Props = {
-  onStart: (pointCap: number) => void;
+  onStart: (pointCap: number, timePerTurnSeconds: number | null) => void;
 };
 
 export function PointCapScreen({ onStart }: Props) {
   const [value, setValue] = useState('100');
+  const [timerSeconds, setTimerSeconds] = useState<number | null>(null);
 
   const points = parseInt(value, 10) || 0;
 
@@ -16,26 +28,45 @@ export function PointCapScreen({ onStart }: Props) {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Text style={styles.title}>BATTLECHESS</Text>
-      <Text style={styles.subtitle}>SET POINT CAP</Text>
-      <View style={styles.inputRow}>
-        <TextInput
-          style={styles.input}
-          value={value}
-          onChangeText={setValue}
-          keyboardType="number-pad"
-          maxLength={4}
-          selectTextOnFocus
-        />
-        <Text style={styles.pts}>pts</Text>
-      </View>
-      <Pressable
-        style={[styles.button, points <= 0 && styles.buttonDisabled]}
-        onPress={() => points > 0 && onStart(points)}
-        disabled={points <= 0}
-      >
-        <Text style={styles.buttonText}>START</Text>
-      </Pressable>
+      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <Text style={styles.title}>BATTLECHESS</Text>
+
+        <Text style={styles.subtitle}>POINT CAP</Text>
+        <View style={styles.inputRow}>
+          <TextInput
+            style={styles.input}
+            value={value}
+            onChangeText={setValue}
+            keyboardType="number-pad"
+            maxLength={4}
+            selectTextOnFocus
+          />
+          <Text style={styles.pts}>pts</Text>
+        </View>
+
+        <Text style={styles.subtitle}>TIME PER PLAYER</Text>
+        <View style={styles.timerRow}>
+          {TIMER_OPTIONS.map(opt => (
+            <Pressable
+              key={opt.label}
+              style={[styles.timerBtn, timerSeconds === opt.seconds && styles.timerBtnActive]}
+              onPress={() => setTimerSeconds(opt.seconds)}
+            >
+              <Text style={[styles.timerLabel, timerSeconds === opt.seconds && styles.timerLabelActive]}>
+                {opt.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <Pressable
+          style={[styles.button, points <= 0 && styles.buttonDisabled]}
+          onPress={() => points > 0 && onStart(points, timerSeconds)}
+          disabled={points <= 0}
+        >
+          <Text style={styles.buttonText}>START</Text>
+        </Pressable>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -44,6 +75,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  scroll: {
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 32,
@@ -52,47 +86,73 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontFamily: FONT.monoBold,
     fontSize: 32,
-    marginBottom: 8,
+    marginBottom: 24,
   },
   subtitle: {
     color: COLORS.textMuted,
     fontFamily: FONT.mono,
-    fontSize: 16,
-    marginBottom: 32,
+    fontSize: 13,
+    marginBottom: 8,
+    marginTop: 16,
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 16,
   },
   input: {
     color: COLORS.text,
     fontFamily: FONT.monoBold,
-    fontSize: 48,
+    fontSize: 44,
     borderBottomWidth: 2,
     borderBottomColor: COLORS.border,
     textAlign: 'center',
-    width: 160,
-    paddingVertical: 8,
+    width: 140,
+    paddingVertical: 4,
   },
   pts: {
     color: COLORS.textMuted,
     fontFamily: FONT.mono,
-    fontSize: 20,
+    fontSize: 18,
     marginLeft: 12,
+  },
+  timerRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 24,
+  },
+  timerBtn: {
+    borderWidth: 1,
+    borderColor: COLORS.textMuted,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 4,
+    minWidth: 48,
+    alignItems: 'center',
+  },
+  timerBtnActive: {
+    backgroundColor: COLORS.border,
+    borderColor: COLORS.border,
+  },
+  timerLabel: {
+    color: COLORS.textMuted,
+    fontFamily: FONT.monoBold,
+    fontSize: 14,
+  },
+  timerLabelActive: {
+    color: '#000000',
   },
   button: {
     backgroundColor: COLORS.border,
     paddingHorizontal: 48,
-    paddingVertical: 16,
+    paddingVertical: 14,
     borderRadius: 4,
+    marginTop: 16,
   },
-  buttonDisabled: {
-    opacity: 0.3,
-  },
+  buttonDisabled: { opacity: 0.3 },
   buttonText: {
     color: '#000000',
     fontFamily: FONT.monoBold,
-    fontSize: 20,
+    fontSize: 18,
   },
 });

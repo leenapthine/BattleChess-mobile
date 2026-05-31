@@ -5,14 +5,16 @@ import { useGame } from './useGame';
 import { GameHeader } from './GameHeader';
 import { GameView } from './GameView';
 import { SpriteInfoCard } from '@/components/SpriteInfoCard';
+import { ConcedeButton } from '@/components/ConcedeButton';
 import { COLORS } from '@/constants/theme';
 
 type Props = {
   p1Army: ArmyConfig;
   p2Army: ArmyConfig;
+  onMainMenu?: () => void;
 };
 
-export function GameScreen({ p1Army, p2Army }: Props) {
+export function GameScreen({ p1Army, p2Army, onMainMenu }: Props) {
   const {
     pieces,
     currentTurn,
@@ -25,6 +27,7 @@ export function GameScreen({ p1Army, p2Army }: Props) {
     flashMessage,
     onSquarePress,
     onNewGame,
+    onResign,
   } = useGame({ p1Army, p2Army });
 
   const { width, height } = useWindowDimensions();
@@ -53,12 +56,14 @@ export function GameScreen({ p1Army, p2Army }: Props) {
         status={status}
         onSquarePress={onSquarePress}
         onNewGame={onNewGame}
+        onMainMenu={onMainMenu}
       />
       <View style={[styles.cardSlot, { height: cardHeight }]}>
         {selectedPiece?.color === 'White' && (
           <SpriteInfoCard piece={selectedPiece} />
         )}
       </View>
+      <ConcedeButton onConcede={onResign} disabled={status.type === 'won'} />
     </View>
   );
 }

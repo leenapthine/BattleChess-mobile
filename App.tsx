@@ -1,4 +1,4 @@
-import { SafeAreaView, StyleSheet, ActivityIndicator, View } from 'react-native';
+import { SafeAreaView, StyleSheet, ActivityIndicator, View, Alert } from 'react-native';
 import { useEffect } from 'react';
 import { useFonts, SpaceMono_400Regular, SpaceMono_700Bold } from '@expo-google-fonts/space-mono';
 import type { ArmyConfig } from '@/types/army';
@@ -15,7 +15,7 @@ import { NamePromptScreen } from '@/screens/NamePrompt';
 import { useAuthStore } from '@/stores/authStore';
 import { useScreenStore } from '@/stores/screenStore';
 import { useGamesStore } from '@/stores/gamesStore';
-import { submitArmy, startGame } from '@/lib/games';
+import { submitArmy, startGame, resignGame } from '@/lib/games';
 import { createInitialState } from '@/engine/initialBoard';
 import { COLORS } from '@/constants/theme';
 
@@ -93,7 +93,7 @@ export default function App() {
       }
       if (isHost && currentGame.host_army && currentGame.guest_army && !currentGame.game_state) {
         const initial = createInitialState(currentGame.host_army, currentGame.guest_army);
-        startGame(currentGame.id, initial).catch(err => console.error('startGame failed', err));
+        startGame(currentGame.id, initial, currentGame.time_per_turn_seconds).catch(err => console.error('startGame failed', err));
       }
       return;
     }
@@ -135,13 +135,18 @@ export default function App() {
     );
   }
 
-  const handlePointCapSubmit = async (pointCap: number) => {
+  const handlePointCapSubmit = async (pointCap: number, timePerTurnSeconds: number | null) => {
     if (screen.type !== 'pointCap') return;
     if (screen.mode === 'local') {
       goTo({ type: 'armyBuilder', player: 1, pointCap });
     } else {
       if (!userId || !profile) return;
-      await createGameAction(userId, profile.display_name, pointCap);
+      try {
+        await createGameAction(userId, profile.display_name, pointCap, timePerTurnSeconds);
+      } catch (err: any) {
+        console.error('createGame failed', err);
+        Alert.alert('Could not create game', err?.message ?? String(err));
+      }
     }
   };
 
@@ -220,7 +225,11 @@ export default function App() {
         />
       )}
       {screen.type === 'game' && (
-        <GameScreen p1Army={screen.player1Army} p2Army={screen.player2Army} />
+        <GameScreen
+          p1Army={screen.player1Army}
+          p2Army={screen.player2Army}
+          onMainMenu={resetToLobby}
+        />
       )}
       {screen.type === 'onlineArmyBuilder' && currentGame && (
         <OnlineArmyBuilderScreen
@@ -239,9 +248,34 @@ export default function App() {
           remoteState={currentGame.game_state}
           myColor={myColor}
           opponentName={opponentName}
+          hostTimeMs={currentGame.host_time_ms}
+          guestTimeMs={currentGame.guest_time_ms}
+          turnStartedAt={currentGame.turn_started_at}
+          isHost={isHost}
           onExit={() => {
             setCurrentGame(null);
             resetToLobby();
+          }}
+          onResign={() => {
+            if (!currentGame || !userId) return;
+            const winnerId = currentGame.host_id === userId
+              ? (currentGame.guest_id ?? userId)
+              : currentGame.host_id;
+            resignGame(currentGame.id, winnerId).catch(err =>
+              console.error('resignGame failed', err)
+            );
+          }}
+          onTimeout={(loserColor) => {
+            if (!currentGame || !userId) return;
+            // Only the active player (whose timer ran out) writes — avoids duplicate writes
+            const myColorComputed = isHost ? 'White' : 'Black';
+            if (loserColor !== myColorComputed) return;
+            const winnerId = isHost
+              ? (currentGame.guest_id ?? currentGame.host_id)
+              : currentGame.host_id;
+            resignGame(currentGame.id, winnerId).catch(err =>
+              console.error('timeout resignGame failed', err)
+            );
           }}
         />
       )}

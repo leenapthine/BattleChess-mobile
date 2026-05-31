@@ -10,9 +10,15 @@ type Props = {
   initialState: GameState;
   remoteState: GameState | null;
   myColor: Color;
+  hostTimeMs: number | null;
+  guestTimeMs: number | null;
+  turnStartedAt: string | null;
+  isHost: boolean;
 };
 
-export function useOnlineGame({ gameId, initialState, remoteState, myColor }: Props) {
+export function useOnlineGame({
+  gameId, initialState, remoteState, myColor, hostTimeMs, guestTimeMs, turnStartedAt, isHost,
+}: Props) {
   const [state, setState] = useState<GameState>(initialState);
 
   // Apply incoming remote updates (when it's the opponent's turn that moved)
@@ -52,13 +58,30 @@ export function useOnlineGame({ gameId, initialState, remoteState, myColor }: Pr
       // My turn: apply and sync to opponent
       const next = gameReducer(state, action);
       setState(next);
+
+      // Compute timer update if the turn changed and timer is active
+      const turnChanged = next.currentTurn !== state.currentTurn;
+      const activePlayerWasHost = isHost;
+      const myBank = isHost ? hostTimeMs : guestTimeMs;
+
+      let timerUpdate: Parameters<typeof writeGameState>[2] = undefined;
+      if (turnChanged && myBank !== null && turnStartedAt) {
+        const elapsed = Date.now() - new Date(turnStartedAt).getTime();
+        const remaining = Math.max(0, myBank - elapsed);
+        timerUpdate = {
+          activePlayerWasHost,
+          activeBankAfterMove: remaining,
+          turnChanged: true,
+        };
+      }
+
       try {
-        await writeGameState(gameId, next);
+        await writeGameState(gameId, next, timerUpdate);
       } catch (err) {
         console.error('writeGameState failed', err);
       }
     },
-    [state, isMyTurn, myColor, gameId],
+    [state, isMyTurn, myColor, gameId, hostTimeMs, guestTimeMs, turnStartedAt, isHost],
   );
 
   const selectedPiece = useMemo(() => {

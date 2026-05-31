@@ -33,6 +33,10 @@ create table public.games (
   status text not null default 'waiting'
     check (status in ('waiting', 'army_select', 'active', 'finished', 'abandoned')),
   point_cap int not null,
+  time_per_turn_seconds int, -- total game time per player in seconds; null = no timer
+  host_time_ms int,          -- time bank remaining for host; ticks during host's turns
+  guest_time_ms int,         -- time bank remaining for guest; ticks during guest's turns
+  turn_started_at timestamptz, -- when the current player's turn began
   host_army jsonb,
   guest_army jsonb,
   game_state jsonb,
@@ -114,3 +118,14 @@ create trigger games_updated_at
 -- 5. ENABLE REALTIME
 alter publication supabase_realtime add table public.games;
 alter publication supabase_realtime add table public.chat_messages;
+
+-- =========================================
+-- MIGRATIONS (run separately if the games table already exists)
+-- =========================================
+
+-- Add timer columns to existing games table:
+-- alter table public.games
+--   add column if not exists time_per_turn_seconds int,
+--   add column if not exists host_time_ms int,
+--   add column if not exists guest_time_ms int,
+--   add column if not exists turn_started_at timestamptz;

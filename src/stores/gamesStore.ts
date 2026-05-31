@@ -22,7 +22,7 @@ type GamesState = {
   startLobbySubscription: () => void;
   stopLobbySubscription: () => void;
 
-  createGame: (hostId: string, hostName: string, pointCap: number) => Promise<GameRow>;
+  createGame: (hostId: string, hostName: string, pointCap: number, timePerTurnSeconds: number | null) => Promise<GameRow>;
   joinGame: (gameId: string, guestId: string, guestName: string) => Promise<GameRow>;
   cancelGame: (gameId: string) => Promise<void>;
   restoreMyGame: (userId: string) => Promise<GameRow | null>;
@@ -64,8 +64,8 @@ export const useGamesStore = create<GamesState>((set, get) => ({
     set({ lobbyUnsub: null });
   },
 
-  createGame: async (hostId, hostName, pointCap) => {
-    const game = await apiCreateGame(hostId, hostName, pointCap);
+  createGame: async (hostId, hostName, pointCap, timePerTurnSeconds) => {
+    const game = await apiCreateGame(hostId, hostName, pointCap, timePerTurnSeconds);
     set({ currentGame: game });
     return game;
   },

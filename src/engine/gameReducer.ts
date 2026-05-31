@@ -46,6 +46,15 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     case 'DESELECT':
       next = { ...state, selectedSquare: null, highlights: [], abilityMode: { type: 'none' } };
       break;
+    case 'RESIGN':
+      next = {
+        ...state,
+        status: { type: 'won', winner: action.resigningColor === 'White' ? 'Black' : 'White' },
+        selectedSquare: null,
+        highlights: [],
+        abilityMode: { type: 'none' },
+      };
+      break;
     default:
       return state;
   }
