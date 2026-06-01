@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Pressable, Text, StyleSheet, useWindowDimensions } from 'react-native';
 import type { Piece, Square, Highlight, GameStatus, Effect } from '@/types/game';
 import { BOARD, HIGHLIGHT, COLORS, FONT } from '@/constants/theme';
-import { AnimatedPiece } from './AnimatedPiece';
+import { AnimatedPiece, seedLastPositions } from './AnimatedPiece';
 import { DyingPiece } from './DyingPiece';
 import { EffectRenderer } from './EffectRenderer';
 
@@ -16,6 +16,14 @@ type EffectEntry = {
   fxId: string;
 };
 
+export type ReplayStep = { pieces: Piece[]; effect: Effect | null };
+
+export type ReplayRequest = {
+  before: Piece[];
+  steps: ReplayStep[];
+  nonce: number;
+};
+
 type Props = {
   pieces: Piece[];
   selectedSquare: Square | null;
@@ -23,25 +31,32 @@ type Props = {
   highlights: Highlight[];
   status: GameStatus;
   lastEffect: Effect | null;
+  replayRequest?: ReplayRequest | null;
   onSquarePress: (square: Square) => void;
   onNewGame?: () => void;
   onMainMenu?: () => void;
 };
 
-export function GameView({ pieces, selectedSquare, selectedCanActivate, highlights, status, lastEffect, onSquarePress, onNewGame, onMainMenu }: Props) {
+export function GameView({ pieces, selectedSquare, selectedCanActivate, highlights, status, lastEffect, replayRequest, onSquarePress, onNewGame, onMainMenu }: Props) {
   const { width } = useWindowDimensions();
   const boardSize = Math.min(width - 16, 400);
   const tileSize = boardSize / 8;
 
-  // Detect captures by ID-diffing prev vs current. Same-ID transitions
-  // (HellKing convert, HellPawn transform, etc.) don't trigger.
-  // Computed in render so the capturing piece's AnimatedPiece can read
-  // the captured-square set on mount and delay its glide.
-  const prevPiecesRef = useRef<Piece[]>(pieces);
+  // During a replay we override the rendered board with a staged frame
+  // (the "before" board, then the live "after" board) so the glide /
+  // death-fade / effect machinery re-animates. Null = follow live pieces.
+  const [replayFrame, setReplayFrame] = useState<Piece[] | null>(null);
+  const board = replayFrame ?? pieces;
+
+  // Detect captures by ID-diffing prev vs current board. Same-ID transitions
+  // (HellKing convert, HellPawn transform, etc.) don't trigger. Computed in
+  // render so the capturing piece's AnimatedPiece can read the captured-square
+  // set on mount and delay its glide.
+  const prevBoardRef = useRef<Piece[]>(board);
   const captureDiff = useMemo(() => {
-    const currentIds = new Set(pieces.map((p) => p.id));
-    return prevPiecesRef.current.filter((p) => !currentIds.has(p.id));
-  }, [pieces]);
+    const currentIds = new Set(board.map((p) => p.id));
+    return prevBoardRef.current.filter((p) => !currentIds.has(p.id));
+  }, [board]);
 
   const captureSquares = useMemo(
     () => new Set(captureDiff.map((p) => `${p.row},${p.col}`)),
@@ -61,26 +76,52 @@ export function GameView({ pieces, selectedSquare, selectedCanActivate, highligh
         ...captureDiff.map((p, i) => ({ piece: p, dyingId: `${p.id}-${ts}-${i}` })),
       ]);
     }
-    prevPiecesRef.current = pieces;
-  }, [pieces, captureDiff]);
+    prevBoardRef.current = board;
+  }, [board, captureDiff]);
 
   const removeDying = (dyingId: string) => {
     setDying((curr) => curr.filter((d) => d.dyingId !== dyingId));
   };
 
-  // Visual effect queue. Each non-null lastEffect produces one queue entry.
-  // Each EffectRenderer's onDone removes its entry when its animation ends.
+  // Visual effect queue. Each non-null lastEffect (and each replay) produces
+  // one queue entry. Each EffectRenderer's onDone removes its entry.
   const [fxQueue, setFxQueue] = useState<EffectEntry[]>([]);
-  useEffect(() => {
-    if (!lastEffect) return;
+  const pushEffect = useCallback((effect: Effect) => {
     setFxQueue((curr) => [
       ...curr,
-      { effect: lastEffect, fxId: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}` },
+      { effect, fxId: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}` },
     ]);
-  }, [lastEffect]);
+  }, []);
+  useEffect(() => {
+    if (lastEffect) pushEffect(lastEffect);
+  }, [lastEffect, pushEffect]);
   const removeFx = (fxId: string) => {
     setFxQueue((curr) => curr.filter((e) => e.fxId !== fxId));
   };
+
+  // Replay: stage the "before" board (mounted statically), then step through
+  // each sub-move of the turn in sequence — so a full multi-step turn
+  // re-animates (every glide, capture-fade, and effect, in order), not just
+  // the final position.
+  useEffect(() => {
+    if (!replayRequest || replayRequest.steps.length === 0) return;
+    const { before, steps } = replayRequest;
+    const STEP_MS = 760;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    seedLastPositions(before);
+    setReplayFrame(before);
+    steps.forEach((step, i) => {
+      timers.push(
+        setTimeout(() => {
+          setReplayFrame(step.pieces);
+          if (step.effect) pushEffect(step.effect);
+        }, 60 + i * STEP_MS),
+      );
+    });
+    timers.push(setTimeout(() => setReplayFrame(null), 60 + steps.length * STEP_MS + 400));
+    return () => timers.forEach(clearTimeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [replayRequest?.nonce]);
 
   return (
     <View style={[styles.board, { width: boardSize, height: boardSize }]}>
@@ -90,7 +131,7 @@ export function GameView({ pieces, selectedSquare, selectedCanActivate, highligh
         <View key={row} style={styles.row}>
           {Array.from({ length: 8 }, (_, col) => {
             const square: Square = { row, col };
-            const piece = pieces.find(p => p.row === row && p.col === col);
+            const piece = board.find(p => p.row === row && p.col === col);
             const highlight = highlights.find(h => h.row === row && h.col === col);
             const isSelected =
               selectedSquare?.row === row && selectedSquare?.col === col;
@@ -143,7 +184,7 @@ export function GameView({ pieces, selectedSquare, selectedCanActivate, highligh
           the board so a sliding piece never hits per-square clipping.
           Key includes row+col so a move forces a fresh mount and the
           FLIP offset takes effect. */}
-      {pieces.map((p) => (
+      {board.map((p) => (
         <AnimatedPiece
           key={`${p.id}-${p.row}-${p.col}`}
           piece={p}

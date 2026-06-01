@@ -227,7 +227,7 @@ All 17 `Effect` types are emitted and rendered:
 
 | Effect | Emitted by | Source module | Visual |
 |---|---|---|---|
-| `detonate` | NecroPawn sacrifice | `abilityHandlers.ts` | `PixelExplosion` (yellow, grows ease-in) |
+| `detonate` | NecroPawn sacrifice; QueenOfDestruction death | `abilityHandlers.ts` / `captureHandler.ts` | `PixelExplosion` (yellow, grows ease-in) |
 | `launch` | DeadLauncher pawn launch | `abilityHandlers.ts` | `LaunchProjectile` (loaded pawn sprite, spinning + debris) |
 | `boulder` | BoulderThrower ranged throw | `abilityHandlers.ts` | `BoulderThrow` (pixel rock, arcs + spins + dust) |
 | `beam` | Beholder eye beam | `abilityHandlers.ts` | `EyeBeam` (magenta pixel ray) |
@@ -246,6 +246,15 @@ All 17 `Effect` types are emitted and rendered:
 | `portalOut` | Portal eject | `Portal.performEject` | two blue `PixelBurst` (both ends) |
 
 **Invariant:** every `EffectRenderer` branch must eventually call `onDone`, or the effect queue stalls. The `stun` case guards against an empty `affected` array for exactly this reason.
+
+### 3. Last-move replay
+
+A **⟳ Replay** button (Game screen, beside Concede) re-plays the previous turn's animation. Rather than storing per-move data, it re-runs the state transition so the existing glide / death-fade / effect machinery re-animates for free:
+
+- `useGame` records each turn as an ordered list of board frames — one per piece-changing sub-move — and finalizes the turn when it ends (turn switches, or a move wins). This captures **multi-step turns in full** (Prowler double-move, Necromancer capture-then-raise, GhoulKing raise-then-move, QueenOfDomination dominate-then-move), not just the final position.
+- On replay, `GameView` seeds `AnimatedPiece`'s position tracker with the "before" board (via `seedLastPositions`, so it mounts without a backward rewind-slide), then steps through each frame in sequence (~760ms apart), re-firing each frame's glide, capture-fade, and effect.
+- A `replayFrame` overrides the rendered board only during playback; the real `GameState` is untouched. Disabled until the first move; cleared on New Game.
+- Currently wired in the local Game screen. Online is a small follow-up (the "before" board there is the last local state before the incoming remote update — no extra sync needed).
 
 ---
 
@@ -565,6 +574,7 @@ The demons use aggression, transformation, and explosive reactions to overwhelm 
 - When any piece captures the QueenOfDestruction, `triggerDetonate()` fires immediately BEFORE the Queen is removed
 - All 8 surrounding tiles (1-step perimeter) are swept; any piece there is removed via `handleCapture()`
 - The QueenOfDestruction itself is also removed after detonation
+- **Visual effect:** a yellow `PixelExplosion` bursts from her square when she dies (`detonate` effect, emitted from `captureHandler.ts`); on the standard capture path. (Boulder/launch kills currently show the projectile instead, since those handlers set their own effect after the capture.)
 
 **Edge Cases:**
 - Detonation fires regardless of WHO captures her — enemy or friendly fire

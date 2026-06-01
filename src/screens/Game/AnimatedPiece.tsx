@@ -8,6 +8,13 @@ import { getSprite } from '@/constants/sprites';
 // here, compute the visual delta, and glide it from old → new.
 const lastPositions = new Map<string, { row: number; col: number }>();
 
+// Seed the position tracker so the given pieces mount in place (no glide) on
+// their next render. Used by the replay system to stage the "before" frame
+// without a backward rewind-slide.
+export function seedLastPositions(pieces: Piece[]): void {
+  for (const p of pieces) lastPositions.set(p.id, { row: p.row, col: p.col });
+}
+
 type Props = {
   piece: Piece;
   tileSize: number;

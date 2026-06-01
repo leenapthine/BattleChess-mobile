@@ -1,4 +1,4 @@
-import { View, StyleSheet } from 'react-native';
+import { View, Pressable, Text, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import type { ArmyConfig } from '@/types/army';
 import { useGame } from './useGame';
@@ -7,7 +7,7 @@ import { GameView } from './GameView';
 import { SpriteInfoCard } from '@/components/SpriteInfoCard';
 import { ConcedeButton } from '@/components/ConcedeButton';
 import { PlayerTimer } from '@/components/PlayerTimer';
-import { COLORS } from '@/constants/theme';
+import { COLORS, FONT } from '@/constants/theme';
 
 type Props = {
   p1Army: ArmyConfig;
@@ -31,6 +31,9 @@ export function GameScreen({ p1Army, p2Army, timePerTurnSeconds, onMainMenu }: P
     whiteTimeMs,
     blackTimeMs,
     turnStartedAt,
+    replayRequest,
+    canReplay,
+    triggerReplay,
     onSquarePress,
     onNewGame,
     onResign,
@@ -79,6 +82,7 @@ export function GameScreen({ p1Army, p2Army, timePerTurnSeconds, onMainMenu }: P
         highlights={highlights}
         status={status}
         lastEffect={lastEffect}
+        replayRequest={replayRequest}
         onSquarePress={onSquarePress}
         onNewGame={onNewGame}
         onMainMenu={onMainMenu}
@@ -88,7 +92,16 @@ export function GameScreen({ p1Army, p2Army, timePerTurnSeconds, onMainMenu }: P
           <SpriteInfoCard piece={selectedPiece} />
         )}
       </View>
-      <ConcedeButton onConcede={onResign} disabled={status.type === 'won'} />
+      <View style={styles.bottomRow}>
+        <Pressable
+          style={[styles.replayBtn, !canReplay && styles.replayDisabled]}
+          onPress={triggerReplay}
+          disabled={!canReplay}
+        >
+          <Text style={styles.replayText}>⟳ REPLAY</Text>
+        </Pressable>
+        <ConcedeButton onConcede={onResign} disabled={status.type === 'won'} />
+      </View>
     </View>
   );
 }
@@ -109,5 +122,28 @@ const styles = StyleSheet.create({
   },
   cardSlot: {
     justifyContent: 'center',
+  },
+  bottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  replayBtn: {
+    alignSelf: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: 24,
+    paddingVertical: 8,
+    borderRadius: 4,
+    marginTop: 8,
+  },
+  replayDisabled: {
+    opacity: 0.4,
+  },
+  replayText: {
+    color: COLORS.border,
+    fontFamily: FONT.monoBold,
+    fontSize: 12,
   },
 });

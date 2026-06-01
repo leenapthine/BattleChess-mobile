@@ -11,6 +11,15 @@ export type CaptureResult = {
   triggerRevival: boolean;
 };
 
+// Build the detonate visual effect for a QueenOfDestruction death: the burst
+// originates at the QoD's square; `affected` lists the neighbours it killed.
+function detonateEffect(qod: Piece, before: Piece[], after: Piece[]) {
+  const affected = before
+    .filter(p => p.id !== qod.id && !after.find(ap => ap.id === p.id))
+    .map(p => ({ row: p.row, col: p.col }));
+  return { type: 'detonate' as const, from: { row: qod.row, col: qod.col }, affected };
+}
+
 export function handleCapture(
   capturedPiece: Piece,
   capturingPiece: Piece | null,
@@ -39,7 +48,11 @@ export function handleCapture(
           p => p.type === 'QueenOfBones' && !afterPieces.find(ap => ap.id === p.id),
         );
         return {
-          state: { ...state, pieces: afterPieces },
+          state: {
+            ...state,
+            pieces: afterPieces,
+            lastEffect: detonateEffect(capturedPiece, beforeDetonation, afterPieces),
+          },
           captured: capturedPiece,
           triggerResurrection: false,
           triggerRevival: !!detonationKilledQoB && canRevive(detonationKilledQoB.color, afterPieces),
@@ -69,7 +82,14 @@ export function handleCapture(
     capturedPiece.type !== 'QueenOfDestruction';
 
   return {
-    state: { ...state, pieces },
+    state: {
+      ...state,
+      pieces,
+      lastEffect:
+        capturedPiece.type === 'QueenOfDestruction'
+          ? detonateEffect(capturedPiece, state.pieces, pieces)
+          : state.lastEffect,
+    },
     captured: capturedPiece,
     triggerResurrection,
     triggerRevival,
