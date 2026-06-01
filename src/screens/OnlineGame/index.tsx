@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import type { GameState, Color } from '@/types/game';
 import { GameHeader } from '@/screens/Game/GameHeader';
@@ -33,7 +33,8 @@ export function OnlineGameScreen({
 }: Props) {
   const {
     pieces, currentTurn, selectedSquare, selectedPiece, selectedCanActivate,
-    highlights, abilityMode, status, lastEffect, isMyTurn, onSquarePress,
+    highlights, abilityMode, status, lastEffect, isMyTurn,
+    replayRequest, canReplay, triggerReplay, onSquarePress,
   } = useOnlineGame({
     gameId, initialState, remoteState, myColor,
     hostTimeMs, guestTimeMs, turnStartedAt, isHost,
@@ -50,30 +51,30 @@ export function OnlineGameScreen({
         <Text style={styles.youAre}>YOU: {myColor}</Text>
         <Text style={styles.opp}>vs {opponentName}</Text>
       </View>
-      <View style={styles.timerBar}>
-        <PlayerTimer
-          label="WHITE"
-          timeMs={whiteTimeMs}
-          isActive={currentTurn === 'White' && status.type === 'active'}
-          turnStartedAt={turnStartedAt}
-          onTimeout={() => onTimeout('White')}
-        />
-        <View style={styles.headerWrap}>
-          <GameHeader
-            currentTurn={currentTurn}
-            status={status}
-            abilityMode={abilityMode}
-            flashMessage={!isMyTurn && status.type === 'active' ? `waiting for ${opponentName}...` : null}
+      <GameHeader
+        currentTurn={currentTurn}
+        status={status}
+        abilityMode={abilityMode}
+        flashMessage={!isMyTurn && status.type === 'active' ? `waiting for ${opponentName}...` : null}
+        leftSlot={
+          <PlayerTimer
+            label="WHITE"
+            timeMs={whiteTimeMs}
+            isActive={currentTurn === 'White' && status.type === 'active'}
+            turnStartedAt={turnStartedAt}
+            onTimeout={() => onTimeout('White')}
           />
-        </View>
-        <PlayerTimer
-          label="BLACK"
-          timeMs={blackTimeMs}
-          isActive={currentTurn === 'Black' && status.type === 'active'}
-          turnStartedAt={turnStartedAt}
-          onTimeout={() => onTimeout('Black')}
-        />
-      </View>
+        }
+        rightSlot={
+          <PlayerTimer
+            label="BLACK"
+            timeMs={blackTimeMs}
+            isActive={currentTurn === 'Black' && status.type === 'active'}
+            turnStartedAt={turnStartedAt}
+            onTimeout={() => onTimeout('Black')}
+          />
+        }
+      />
       <View style={[styles.cardSlot, { height: CARD_HEIGHT }]}>
         {selectedPiece?.color === 'Black' && (
           <SpriteInfoCard piece={selectedPiece} />
@@ -86,6 +87,7 @@ export function OnlineGameScreen({
         highlights={highlights}
         status={status}
         lastEffect={lastEffect}
+        replayRequest={replayRequest}
         onSquarePress={onSquarePress}
         onMainMenu={onExit}
       />
@@ -94,7 +96,16 @@ export function OnlineGameScreen({
           <SpriteInfoCard piece={selectedPiece} />
         )}
       </View>
-      <ConcedeButton onConcede={onResign} disabled={status.type === 'won'} />
+      <View style={styles.bottomRow}>
+        <Pressable
+          style={[styles.replayBtn, !canReplay && styles.replayDisabled]}
+          onPress={triggerReplay}
+          disabled={!canReplay}
+        >
+          <Text style={styles.replayText}>⟳ REPLAY</Text>
+        </Pressable>
+        <ConcedeButton onConcede={onResign} disabled={status.type === 'won'} />
+      </View>
     </View>
   );
 }
@@ -108,15 +119,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 4,
   },
-  timerBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    gap: 4,
-  },
-  headerWrap: {
-    flex: 1,
-  },
   youAre: { color: COLORS.text, fontFamily: FONT.monoBold, fontSize: 11 },
   opp: { color: COLORS.textMuted, fontFamily: FONT.mono, fontSize: 11 },
+  bottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  replayBtn: {
+    alignSelf: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: 24,
+    paddingVertical: 8,
+    borderRadius: 4,
+    marginTop: 8,
+  },
+  replayDisabled: {
+    opacity: 0.4,
+  },
+  replayText: {
+    color: COLORS.border,
+    fontFamily: FONT.monoBold,
+    fontSize: 12,
+  },
 });

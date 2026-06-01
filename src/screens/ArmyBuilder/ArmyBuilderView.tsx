@@ -67,6 +67,7 @@ export function ArmyBuilderView({
   onUpgradeAll, onClearAll, onConfirm,
 }: Props) {
   return (
+    <View style={styles.root}>
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.guildRow}>
         {GUILDS.map(g => (
@@ -128,17 +129,19 @@ export function ArmyBuilderView({
         </Pressable>
       </View>
 
+    </ScrollView>
       <Pressable style={styles.confirmBtn} onPress={onConfirm}>
         <Text style={styles.confirmText}>CONFIRM ARMY</Text>
       </Pressable>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: COLORS.background },
   container: { flex: 1, backgroundColor: COLORS.background },
-  content: { padding: 12 },
-  guildRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
+  content: { padding: 12, paddingBottom: 60 },
+  guildRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
   guildBtn: {
     flex: 1,
     paddingVertical: 10,
@@ -189,7 +192,7 @@ const styles = StyleSheet.create({
   undoBtn: { backgroundColor: '#663300' },
   btnDisabled: { opacity: 0.3 },
   toggleText: { color: '#000000', fontFamily: FONT.monoBold, fontSize: 16 },
-  actionRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 16 },
+  actionRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
   actionBtn: {
     flex: 1,
     paddingVertical: 10,
@@ -201,12 +204,17 @@ const styles = StyleSheet.create({
   },
   actionText: { color: COLORS.textMuted, fontFamily: FONT.mono, fontSize: 12 },
   confirmBtn: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: COLORS.border,
-    paddingVertical: 16,
+    paddingVertical: 10,
     borderRadius: 4,
     alignItems: 'center',
-    marginTop: 16,
-    marginBottom: 32,
+    justifyContent: 'center',
+    marginHorizontal: 12,
+    marginBottom: 10,
   },
-  confirmText: { color: '#000000', fontFamily: FONT.monoBold, fontSize: 18 },
+  confirmText: { color: '#000000', fontFamily: FONT.monoBold, fontSize: 16 },
 });

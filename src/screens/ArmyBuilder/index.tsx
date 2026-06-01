@@ -74,6 +74,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   cardSlot: {
-    height: 80,
+    height: 90,
   },
 });

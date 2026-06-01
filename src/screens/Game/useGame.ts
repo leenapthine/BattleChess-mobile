@@ -1,21 +1,11 @@
 import { useReducer, useCallback, useMemo, useRef, useState, useEffect } from 'react';
-import type { Color, Square, Piece, Effect } from '@/types/game';
+import type { Color, Square } from '@/types/game';
 import type { ArmyConfig } from '@/types/army';
 import { gameReducer } from '@/engine/gameReducer';
 import { classifyAction } from '@/engine/helpers/classifyAction';
 import { createInitialState } from '@/engine/initialBoard';
 import { hasSelfClickAbility } from '@/engine/pieceTraits';
-
-// True if the two boards differ in piece set or any piece position — used to
-// record a replayable snapshot only on real moves, not selections.
-function boardsDiffer(a: Piece[], b: Piece[]): boolean {
-  if (a.length !== b.length) return true;
-  const map = new Map(a.map((p) => [p.id, p]));
-  return b.some((p) => {
-    const o = map.get(p.id);
-    return !o || o.row !== p.row || o.col !== p.col;
-  });
-}
+import { useReplayRecorder } from './useReplayRecorder';
 
 type Props = {
   p1Army: ArmyConfig;
@@ -61,65 +51,7 @@ export function useGame({ p1Army, p2Army, timePerTurnSeconds }: Props) {
     [state],
   );
 
-  // Replay support: record each player's turn as a sequence of board frames
-  // (one per piece-changing sub-move) so multi-step turns — Prowler
-  // double-move, Necromancer capture-then-raise, GhoulKing raise-then-move,
-  // QueenOfDomination dominate-then-move — replay in full, not just the final
-  // sub-move. A turn is finalized when it ends (turn switches or game won).
-  type ReplayStep = { pieces: Piece[]; effect: Effect | null };
-  const replaySkipRef = useRef(false);
-  const replayPrevPiecesRef = useRef<Piece[]>(state.pieces);
-  const replayPrevTurnRef = useRef<Color>(state.currentTurn);
-  const turnStartRef = useRef<Piece[]>(state.pieces);
-  const turnStepsRef = useRef<ReplayStep[]>([]);
-  const lastReplayRef = useRef<{ before: Piece[]; steps: ReplayStep[] } | null>(null);
-  const [canReplay, setCanReplay] = useState(false);
-  const [replayRequest, setReplayRequest] = useState<
-    { before: Piece[]; steps: ReplayStep[]; nonce: number } | null
-  >(null);
-
-  useEffect(() => {
-    if (replaySkipRef.current) {
-      // A reset just happened — resync to the fresh board, record nothing.
-      replaySkipRef.current = false;
-      turnStartRef.current = state.pieces;
-      turnStepsRef.current = [];
-      replayPrevPiecesRef.current = state.pieces;
-      replayPrevTurnRef.current = state.currentTurn;
-      return;
-    }
-
-    const piecesChanged =
-      replayPrevPiecesRef.current !== state.pieces &&
-      boardsDiffer(replayPrevPiecesRef.current, state.pieces);
-    const turnChanged = replayPrevTurnRef.current !== state.currentTurn;
-    const gameEnded = state.status.type === 'won';
-
-    if (piecesChanged) {
-      turnStepsRef.current = [
-        ...turnStepsRef.current,
-        { pieces: state.pieces, effect: state.lastEffect },
-      ];
-    }
-
-    // Turn complete (opponent's turn begins, or a move just ended the game) →
-    // promote the accumulated sub-moves to the replayable turn.
-    if ((turnChanged || gameEnded) && turnStepsRef.current.length > 0) {
-      lastReplayRef.current = { before: turnStartRef.current, steps: turnStepsRef.current };
-      setCanReplay(true);
-      turnStartRef.current = state.pieces;
-      turnStepsRef.current = [];
-    }
-
-    replayPrevPiecesRef.current = state.pieces;
-    replayPrevTurnRef.current = state.currentTurn;
-  }, [state.pieces, state.currentTurn, state.lastEffect, state.status.type]);
-
-  const triggerReplay = useCallback(() => {
-    const data = lastReplayRef.current;
-    if (!data) return;
-    setReplayRequest({ before: data.before, steps: data.steps, nonce: Date.now() });
-  }, []);
+  const { canReplay, replayRequest, triggerReplay, resetReplay } = useReplayRecorder(state);
 
   const onNewGame = useCallback(() => {
     dispatch({ type: 'RESET_GAME' });
@@ -127,12 +59,8 @@ export function useGame({ p1Army, p2Army, timePerTurnSeconds }: Props) {
     setBlackTimeMs(initialBankMs);
     setTurnStartedAt(new Date().toISOString());
     prevTurnRef.current = 'White';
-    lastReplayRef.current = null;
-    turnStepsRef.current = [];
-    replaySkipRef.current = true;
-    setCanReplay(false);
-    setReplayRequest(null);
-  }, [initialBankMs]);
+    resetReplay();
+  }, [initialBankMs, resetReplay]);
 
   const onResign = useCallback(() => {
     dispatch({ type: 'RESIGN', resigningColor: state.currentTurn });

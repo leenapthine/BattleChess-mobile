@@ -4,6 +4,7 @@ import { gameReducer } from '@/engine/gameReducer';
 import { classifyAction } from '@/engine/helpers/classifyAction';
 import { hasSelfClickAbility } from '@/engine/pieceTraits';
 import { writeGameState } from '@/lib/games';
+import { useReplayRecorder } from '@/screens/Game/useReplayRecorder';
 
 type Props = {
   gameId: string;
@@ -33,6 +34,11 @@ export function useOnlineGame({
   }, [remoteState]);
 
   const isMyTurn = state.currentTurn === myColor;
+
+  // Replay recording — driven by `state` transitions, which covers both my
+  // own reducer moves and the opponent's moves arriving via remote sync
+  // (each sub-move is written to the DB, so it arrives as its own frame).
+  const { canReplay, replayRequest, triggerReplay } = useReplayRecorder(state);
 
   const onSquarePress = useCallback(
     async (square: Square) => {
@@ -112,6 +118,9 @@ export function useOnlineGame({
     status: state.status,
     lastEffect: state.lastEffect,
     isMyTurn,
+    replayRequest,
+    canReplay,
+    triggerReplay,
     onSquarePress,
   };
 }

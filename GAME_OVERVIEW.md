@@ -182,7 +182,7 @@ Sprites live in `assets/sprites/{Color}{Type}.png` — e.g. `WhiteNecromancer.pn
 **Additional UI:**
 - **Header** — shows current turn, ability-mode instructions, and flash messages (e.g. "Familiar turned to stone!")
 - **Win overlay** — appears on king capture / resign / timeout; shows reason banner, winner text, and `New Game` + `Main Menu` buttons
-- **Per-player clocks** — small timer cards flanking the turn bar (online games only); active player's clock ticks down each turn
+- **Per-player clocks** — small timer cards sit at the two ends of the full-width turn bar, flanking the centered turn label (the ability/status line spans edge-to-edge beneath them, clamped to one line). Active player's clock ticks down each turn; unlimited games show `∞`
 - **Concede button** — sits below the sprite-info area in active games; opens a confirm modal
 - **Captured pieces graveyard** — fixed-height sprite rows above/below the board per color; Portal-loaded pieces excluded from graveyard until last friendly Portal is captured
 - **Title screen** — retro 1980s home-computer boot screen shown on cold launch with a randomly-selected piece as the centerpiece (see `src/screens/Title/`)
@@ -254,7 +254,7 @@ A **⟳ Replay** button (Game screen, beside Concede) re-plays the previous turn
 - `useGame` records each turn as an ordered list of board frames — one per piece-changing sub-move — and finalizes the turn when it ends (turn switches, or a move wins). This captures **multi-step turns in full** (Prowler double-move, Necromancer capture-then-raise, GhoulKing raise-then-move, QueenOfDomination dominate-then-move), not just the final position.
 - On replay, `GameView` seeds `AnimatedPiece`'s position tracker with the "before" board (via `seedLastPositions`, so it mounts without a backward rewind-slide), then steps through each frame in sequence (~760ms apart), re-firing each frame's glide, capture-fade, and effect.
 - A `replayFrame` overrides the rendered board only during playback; the real `GameState` is untouched. Disabled until the first move; cleared on New Game.
-- Currently wired in the local Game screen. Online is a small follow-up (the "before" board there is the last local state before the incoming remote update — no extra sync needed).
+- Wired in **both** the local and online Game screens via a shared `useReplayRecorder(state)` hook. Online works because every state transition is recorded — the active player's moves (reducer) and the opponent's moves (each sub-move is written to the DB, so it arrives as its own state update via Realtime). No extra sync needed.
 
 ---
 
