@@ -1,7 +1,14 @@
-import { View, Pressable, Image, Text, StyleSheet, useWindowDimensions } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { View, Pressable, Text, StyleSheet, useWindowDimensions } from 'react-native';
 import type { Piece, Square, Highlight, GameStatus } from '@/types/game';
 import { BOARD, HIGHLIGHT, COLORS, FONT } from '@/constants/theme';
-import { getSprite } from '@/constants/sprites';
+import { AnimatedPiece } from './AnimatedPiece';
+import { DyingPiece } from './DyingPiece';
+
+type DyingEntry = {
+  piece: Piece;
+  dyingId: string;
+};
 
 type Props = {
   pieces: Piece[];
@@ -18,6 +25,41 @@ export function GameView({ pieces, selectedSquare, selectedCanActivate, highligh
   const { width } = useWindowDimensions();
   const boardSize = Math.min(width - 16, 400);
   const tileSize = boardSize / 8;
+
+  // Detect captures by ID-diffing prev vs current. Same-ID transitions
+  // (HellKing convert, HellPawn transform, etc.) don't trigger.
+  // Computed in render so the capturing piece's AnimatedPiece can read
+  // the captured-square set on mount and delay its glide.
+  const prevPiecesRef = useRef<Piece[]>(pieces);
+  const captureDiff = useMemo(() => {
+    const currentIds = new Set(pieces.map((p) => p.id));
+    return prevPiecesRef.current.filter((p) => !currentIds.has(p.id));
+  }, [pieces]);
+
+  const captureSquares = useMemo(
+    () => new Set(captureDiff.map((p) => `${p.row},${p.col}`)),
+    [captureDiff],
+  );
+
+  // Option C: capturing piece waits until the dying piece is ~half through
+  // its 280ms fade before starting its own 180ms slide.
+  const CAPTURE_SLIDE_DELAY_MS = 140;
+
+  const [dying, setDying] = useState<DyingEntry[]>([]);
+  useEffect(() => {
+    if (captureDiff.length > 0) {
+      const ts = Date.now();
+      setDying((curr) => [
+        ...curr,
+        ...captureDiff.map((p, i) => ({ piece: p, dyingId: `${p.id}-${ts}-${i}` })),
+      ]);
+    }
+    prevPiecesRef.current = pieces;
+  }, [pieces, captureDiff]);
+
+  const removeDying = (dyingId: string) => {
+    setDying((curr) => curr.filter((d) => d.dyingId !== dyingId));
+  };
 
   return (
     <View style={[styles.board, { width: boardSize, height: boardSize }]}>
@@ -70,22 +112,34 @@ export function GameView({ pieces, selectedSquare, selectedCanActivate, highligh
                     ]}
                   />
                 )}
-                {piece && (
-                  <Image
-                    source={getSprite(piece.color, piece.type)!}
-                    style={{
-                      width: tileSize,
-                      height: tileSize,
-                      opacity: piece.stunned ? 0.4 : piece.isStone ? 0.6 : 1,
-                    }}
-                  />
-                )}
               </Pressable>
             );
           })}
         </View>
         );
       })}
+      {/* Pieces float in their own absolutely-positioned layer on top of
+          the board so a sliding piece never hits per-square clipping.
+          Key includes row+col so a move forces a fresh mount and the
+          FLIP offset takes effect. */}
+      {pieces.map((p) => (
+        <AnimatedPiece
+          key={`${p.id}-${p.row}-${p.col}`}
+          piece={p}
+          tileSize={tileSize}
+          startDelay={
+            captureSquares.has(`${p.row},${p.col}`) ? CAPTURE_SLIDE_DELAY_MS : 0
+          }
+        />
+      ))}
+      {dying.map((d) => (
+        <DyingPiece
+          key={d.dyingId}
+          piece={d.piece}
+          tileSize={tileSize}
+          onDone={() => removeDying(d.dyingId)}
+        />
+      ))}
       {status.type === 'won' && (
         <View style={styles.overlay}>
           {status.reason && (
