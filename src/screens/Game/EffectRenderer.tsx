@@ -1,9 +1,12 @@
 import type { Effect } from '@/types/game';
-import { Shockwave } from './effects/Shockwave';
-import { Projectile } from './effects/Projectile';
 import { Beam } from './effects/Beam';
+import { BoulderThrow } from './effects/BoulderThrow';
+import { PixelExplosion } from './effects/PixelExplosion';
+import { LaunchProjectile } from './effects/LaunchProjectile';
 import { StunPulse } from './effects/StunPulse';
 import { StonePulse } from './effects/StonePulse';
+import { LightningBolt } from './effects/LightningBolt';
+import { FireBurst } from './effects/FireBurst';
 
 type Props = {
   effect: Effect;
@@ -23,7 +26,7 @@ export function EffectRenderer({ effect, tileSize, onDone }: Props) {
   switch (effect.type) {
     case 'detonate':
       return (
-        <Shockwave
+        <PixelExplosion
           row={effect.from.row}
           col={effect.from.col}
           tileSize={tileSize}
@@ -31,16 +34,29 @@ export function EffectRenderer({ effect, tileSize, onDone }: Props) {
         />
       );
 
+    case 'launch':
+      return (
+        <LaunchProjectile
+          fromRow={effect.from.row}
+          fromCol={effect.from.col}
+          toRow={effect.to.row}
+          toCol={effect.to.col}
+          tileSize={tileSize}
+          spriteColor={effect.spriteColor}
+          spriteType={effect.spriteType}
+          onDone={onDone}
+        />
+      );
+
     case 'boulder':
       return (
-        <Projectile
+        <BoulderThrow
           fromRow={effect.from.row}
           fromCol={effect.from.col}
           toRow={effect.to.row}
           toCol={effect.to.col}
           tileSize={tileSize}
           onDone={onDone}
-          color="#8b6f47"
         />
       );
 
@@ -58,52 +74,25 @@ export function EffectRenderer({ effect, tileSize, onDone }: Props) {
       );
 
     case 'kingShot':
-      return (
-        <Beam
-          fromRow={effect.from.row}
-          fromCol={effect.from.col}
-          toRow={effect.to.row}
-          toCol={effect.to.col}
-          tileSize={tileSize}
-          onDone={onDone}
-          color="#66ccff"
-          thickness={8}
-          extendMs={140}
-          holdMs={120}
-        />
-      );
-
     case 'towerShot':
       return (
-        <Beam
+        <LightningBolt
           fromRow={effect.from.row}
           fromCol={effect.from.col}
           toRow={effect.to.row}
           toCol={effect.to.col}
           tileSize={tileSize}
           onDone={onDone}
-          color="#39ff14"
-          thickness={3}
-          extendMs={70}
-          holdMs={80}
-          fadeMs={130}
         />
       );
 
     case 'zap':
       return (
-        <Beam
-          fromRow={effect.from.row}
-          fromCol={effect.from.col}
-          toRow={effect.to.row}
-          toCol={effect.to.col}
+        <FireBurst
+          row={effect.to.row}
+          col={effect.to.col}
           tileSize={tileSize}
           onDone={onDone}
-          color="#66ffff"
-          thickness={5}
-          extendMs={60}
-          holdMs={90}
-          fadeMs={130}
         />
       );
 

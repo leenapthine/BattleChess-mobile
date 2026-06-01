@@ -15,19 +15,20 @@
 4. [Starting Configuration](#starting-configuration)
 5. [Global State](#global-state)
 6. [Rendering & Board](#rendering--board)
-7. [Click Handler — The Central Dispatcher](#click-handler--the-central-dispatcher)
-8. [Core Logic Modules](#core-logic-modules)
-9. [Basic Pieces](#basic-pieces)
-10. [The Four Guilds](#the-four-guilds)
+7. [Visual Effects](#visual-effects)
+8. [Click Handler — The Central Dispatcher](#click-handler--the-central-dispatcher)
+9. [Core Logic Modules](#core-logic-modules)
+10. [Basic Pieces](#basic-pieces)
+11. [The Four Guilds](#the-four-guilds)
     - [Necromancer Guild](#necromancer-guild)
     - [Demon Guild](#demon-guild)
     - [BeastMaster Guild](#beastmaster-guild)
     - [Wizard Guild](#wizard-guild)
-11. [Piece Properties Reference](#piece-properties-reference)
-12. [Highlight Color System](#highlight-color-system)
-13. [Edge Cases & Design Decisions](#edge-cases--design-decisions)
-14. [Known Bugs & Incomplete Logic](#known-bugs--incomplete-logic)
-15. [Features Not Yet Implemented](#features-not-yet-implemented)
+12. [Piece Properties Reference](#piece-properties-reference)
+13. [Highlight Color System](#highlight-color-system)
+14. [Edge Cases & Design Decisions](#edge-cases--design-decisions)
+15. [Known Bugs & Incomplete Logic](#known-bugs--incomplete-logic)
+16. [Features Not Yet Implemented](#features-not-yet-implemented)
 
 ---
 
@@ -189,6 +190,56 @@ Sprites live in `assets/sprites/{Color}{Type}.png` — e.g. `WhiteNecromancer.pn
 
 ---
 
+## Visual Effects
+
+The board renders an animation layer above the `Pressable` grid using **React Native Reanimated 4** (worklets). Two independent systems run here.
+
+### 1. Per-move animations (automatic — no engine involvement)
+
+Driven purely by diffing the `pieces` array in `GameView`:
+
+- **Glide** (`AnimatedPiece`) — pieces live in an absolutely-positioned layer above the grid and slide (FLIP) to their destination on every move, so a sliding sprite is never clipped by per-square bounds.
+- **Death fade** (`DyingPiece`) — captures are detected by ID-diffing previous vs current pieces; a removed piece fades out (~280ms). The capturing piece's glide is delayed ~140ms so the victim is half-faded before the attacker arrives. Same-ID transitions (HellKing convert, HellPawn transform) do **not** trigger a death fade.
+
+### 2. Ability effects (engine-driven via `lastEffect`)
+
+The reducer writes a typed `Effect` onto `GameState.lastEffect` for the action that produces it, and resets it to `null` on every other action — so each effect fires exactly once. `GameView` queues each non-null `lastEffect`; `EffectRenderer` routes it to a Reanimated primitive that calls `onDone` to remove itself from the queue.
+
+Primitives live in `src/screens/Game/effects/`. Most are hand-rolled **pixel art** — square `View`s laid out on a grid, no SVG/Skia (avoids a native dependency):
+
+| Primitive | Shape |
+|---|---|
+| `Beam` | straight beam between two tiles |
+| `StunPulse` | yellow electric flash over a tile |
+| `StonePulse` | grey petrify flash over a tile |
+| `LightningBolt` | gold pixel-art bolt (jagged Bresenham staircase) between two tiles |
+| `FireBurst` | small pixel-art flame on a tile, flickers upward |
+| `BoulderThrow` | procedural lumpy pixel rock, arcs + spins to target |
+| `PixelExplosion` | spiky pixel burst that scales up with ease-in (slow → fast), then fades |
+| `LaunchProjectile` | the loaded pawn's actual sprite, hurled in an arc while spinning |
+
+(`Shockwave` and `Projectile` still exist but are no longer wired in — superseded by the pixel-art primitives.)
+
+Currently emitted effects (9):
+
+| Effect | Emitted by | Source module | Visual |
+|---|---|---|---|
+| `detonate` | NecroPawn sacrifice | `abilityHandlers.ts` | `PixelExplosion` (yellow, grows ease-in) |
+| `launch` | DeadLauncher pawn launch | `abilityHandlers.ts` | `LaunchProjectile` (loaded pawn sprite, spinning) |
+| `boulder` | BoulderThrower ranged throw | `abilityHandlers.ts` | `BoulderThrow` (pixel rock, arcs + spins) |
+| `beam` | Beholder eye beam | `abilityHandlers.ts` | magenta `Beam` |
+| `kingShot` | WizardKing vertical shot | `abilityHandlers.ts` | gold pixel `LightningBolt` |
+| `towerShot` | WizardTower ranged capture | `captureDispatch.ts` | gold pixel `LightningBolt` |
+| `zap` | YoungWiz forward zap | `captureDispatch.ts` | `FireBurst` flame on target |
+| `stun` | GhostKnight stun aura | `turnManager.ts` | yellow `StunPulse` per stunned square |
+| `stone` | Familiar turn-to-stone / revert | `Familiar.toggleStone` | grey `StonePulse` |
+
+The `Effect` union in `types/game.ts` also declares `raise`, `revive`, `transform`, `convert`, `dominate`, `swap`, `portalOut`, and `howlerAbsorb`. These are **reserved but not yet emitted/rendered** — they fall through to a no-op in `EffectRenderer` (which still fires `onDone` so the queue never stalls).
+
+**Invariant:** every `EffectRenderer` branch must eventually call `onDone`, or the effect queue stalls. The `stun` case guards against an empty `affected` array for exactly this reason.
+
+---
+
 ## Multiplayer
 
 Two-player games can run in two modes:
@@ -290,6 +341,7 @@ The undead manipulation faction. Specializes in resurrection, sacrifice, and cro
 - **Click 1:** Select → highlights normal pawn moves + self in cyan
 - **Click 2 (on self):** Arms sacrifice → highlights self in red + all 8 surrounding tiles in red
 - **Click 3 (on self):** Detonates → removes NecroPawn + all pieces in 8 surrounding tiles (friend AND foe)
+- **Visual effect:** a yellow pixel-art `PixelExplosion` bursts from the NecroPawn's tile, scaling up slow-then-fast (`detonate` effect)
 
 **Edge Cases:**
 - Cancellation: clicking any other square during armed state clears sacrifice mode
@@ -306,6 +358,7 @@ The undead manipulation faction. Specializes in resurrection, sacrifice, and cro
 - After ANY move (including captures), all 4 orthogonally adjacent enemy pieces gain `stunned: true`
 - Stunned pieces cannot be selected or moved on the opponent's next turn
 - Stuns are applied AFTER the board is committed and BEFORE the turn switches
+- **Visual effect:** a yellow `StunPulse` flashes over each newly stunned square (`stun` effect, emitted from `turnManager.applyPostMoveEffects`)
 
 **Edge Cases:**
 - The stun effect uses the GhostKnight's **post-move** position, not where it moved from
@@ -342,6 +395,8 @@ The undead manipulation faction. Specializes in resurrection, sacrifice, and cro
 4. **Click 4 (on self, while loaded):** Enter Launch Mode — highlights Manhattan-distance-3 tiles in red
 5. **Click 5 (red tile):** Launch — removes any piece at that tile, `pawnLoaded = false`; turn ends
 
+**Visual effect:** the launcher records the loaded pawn's type in `loadedPawnType` on load; on launch a `LaunchProjectile` hurls that pawn's actual sprite (Pawn / NecroPawn / HellPawn / YoungWiz / PawnHopper) in a spinning arc to the target (`launch` effect).
+
 **Edge Cases:**
 - While loaded but NOT in launch mode, the DeadLauncher can still move normally (Rook movement)
 - Loading consumes the turn; launching also consumes the turn (each is a full action)
@@ -362,7 +417,7 @@ The undead manipulation faction. Specializes in resurrection, sacrifice, and cro
 - The raise ability is intended to be "free" — it should not consume the GhoulKing's move for that turn
 
 **Edge Cases:**
-- **Bug:** After raising, `setSelectedSquare(null)` is called, which deselects the GhoulKing. The player cannot immediately move it. This means the raise effectively DOES consume the turn in practice.
+- **Engine port:** `performRaise` does **not** call `switchTurn`, so raising is genuinely free — the GhoulKing can still move the same turn (original web bug #5 fixed)
 - The raised NecroPawn starts with default properties (no abilities, not stunned)
 - If all adjacent tiles are occupied, the raise mode activates with no valid targets shown
 
@@ -459,6 +514,7 @@ The demons use aggression, transformation, and explosive reactions to overwhelm 
 **Special — Ranged Boulder (2-click):**
 - **Click 2 (on self, while selected):** Enter boulder mode — highlights all squares within Manhattan distance ≤ 3 in red (enemy targets)
 - **Click (red tile):** Fires boulder → removes any enemy piece there; does NOT move the Beholder; turn ends
+- **Visual effect:** a magenta `Beam` fires from the Beholder to the target (`beam` effect)
 
 **Edge Cases:**
 - The Beholder's movement highlights ONLY empty squares — it cannot capture by moving, unlike standard pieces
@@ -557,6 +613,7 @@ The beast faction combines raw physical power with unusual mobility.
 **Special — Ranged Boulder (2-click, identical pattern to Beholder):**
 - **Click 2 (on self):** Enter boulder mode — Manhattan-distance-3 perimeter highlighted red
 - **Click (red tile):** Fires boulder → removes enemy there; does NOT move the BoulderThrower; turn ends
+- **Visual effect:** a lumpy pixel-art `BoulderThrow` rock arcs from the thrower to the target, spinning as it flies (`boulder` effect)
 
 **Edge Cases:**
 - Movement highlights are yellow; no red captures via movement
@@ -613,11 +670,12 @@ The wizard faction bends rules — repositioning, shooting, teleporting, and shi
 - If there is an enemy piece directly in front of the YoungWiz (1 tile forward in its movement direction), that square is highlighted red
 - Clicking the red square removes the enemy piece WITHOUT the YoungWiz moving
 - The YoungWiz stays in place; turn ends
+- **Visual effect:** a small pixel-art `FireBurst` flame ignites on the tile directly ahead (`zap` effect, emitted from `captureDispatch.ts`); diagonal captures are normal moves with no fire
 
 **Edge Cases:**
 - The zap square and the forward-1 movement square are the same tile — but the logic distinguishes: if that tile is **occupied by an enemy**, it's a zap (highlighted red); if empty, it's movement (highlighted yellow)
 - If the tile directly ahead is occupied by a **friendly**, it's not highlighted at all (standard pawn movement blocking)
-- The `handleYoungWizZapClick` verifies both that the target matches the zap position AND that a `pieceAtZap` exists and is enemy
+- The YoungWiz case in `dispatchPieceCapture` only zaps when the target is the square directly forward and holds an enemy; otherwise it falls through to a normal (diagonal) pawn capture
 
 ---
 
@@ -629,12 +687,13 @@ The wizard faction bends rules — repositioning, shooting, teleporting, and shi
 - **Click 2 (on self, while selected and not stone):** The Familiar becomes stone — `isStone = true`; turn ends
 - While stone: the Familiar cannot be captured (`handleCapture` checks `isStone`)
 - **Click (on self, while stone):** The Familiar reverts — `isStone = false`; does NOT consume a turn
+- **Visual effect:** a grey `StonePulse` flashes over the tile on both petrify and revert (`stone` effect, with `on: true/false`)
 
 **Edge Cases:**
 - Stone pieces are immune to ALL capture methods (regular capture, boulder throws, AoE sacrifices, etc.) because `handleCapture` returns early if `capturedPiece.isStone`
 - The stone-reverting click does not call `switchTurn()` — the reverting player can still act
 - When stone, the Familiar's highlight shows normal Knight moves but NOT the cyan "activate stone" highlight — this correctly signals that stone mode cannot be re-activated while already stone
-- **Bug:** The revert logic (`familiarPiece.isStone = false; return true`) runs before the `isTurn` check for going INTO stone. If the Familiar is stone and the enemy clicks it (via `handleFamiliarClick` in the click chain), the enemy could un-stone your Familiar. However, the function first checks that the selected piece is a Familiar, which requires the enemy to have first selected their own Familiar... Actually, the check is that `selectedPosition` holds a Familiar — this should be the current player's selection. Worth verifying in play.
+- **Engine port:** `toggleStone` is only reachable for the Familiar's own player via the self-click ability flow, so an opponent can no longer un-stone your Familiar (original web bug #7 fixed)
 
 ---
 
@@ -643,13 +702,14 @@ The wizard faction bends rules — repositioning, shooting, teleporting, and shi
 **Movement:** Unlimited diagonal (standard Bishop)
 
 **Special — Remote Capture (no movement on capture):**
-- When the WizardTower moves diagonally into a square with an enemy, it captures WITHOUT physically moving into that square
+- When the WizardTower targets a diagonal enemy square, it captures WITHOUT physically moving into that square
 - The WizardTower stays in place; the enemy is removed; turn ends
+- **Visual effect:** a gold pixel-art `LightningBolt` strikes from the tower to the target (`towerShot` effect, emitted from `captureDispatch.ts`)
 
 **Edge Cases:**
-- The standard Bishop `highlightMoves` includes enemy squares in red — clicking a red highlighted square triggers `handleWizardTowerCapture` first in the dispatch chain, which removes the enemy and returns `true`, preventing the standard move from firing
+- The standard Bishop highlights include enemy squares in red — capturing one routes through `dispatchPieceCapture` (`captureDispatch.ts`), which runs `performRangedCapture` instead of a normal move
 - The WizardTower can move normally to empty squares (yellow highlights still work)
-- **Significant issue:** `handleWizardTowerCapture` does NOT call `switchTurn()`. After a capture, the turn does not switch. This is a bug.
+- **Engine port:** `performRangedCapture` calls `switchTurn`, so a ranged capture correctly ends the turn (original web bug #3 fixed)
 - Stone pieces cannot be captured by the WizardTower (filtered by `handleCapture`)
 
 ---
@@ -683,12 +743,12 @@ The wizard faction bends rules — repositioning, shooting, teleporting, and shi
 - The WizardKing can shoot directly up OR down — the first enemy piece in its vertical column (looking both up and down) is highlighted red
 - Clicking the red square removes that enemy WITHOUT the WizardKing moving; turn ends
 - Also captures normally within the 1-square perimeter (physical move into enemy square, like a standard King)
+- **Visual effect:** a gold pixel-art `LightningBolt` strikes along the column to the target (`kingShot` effect, emitted from `abilityHandlers.ts`)
 
 **Edge Cases:**
 - The shot is blocked by intervening pieces (friendly or enemy) — it only hits the FIRST piece in each direction
-- The physical king capture (1-square perimeter) and the vertical shot both use the same red highlight color — clicking any red square triggers `handleWizardKingCapture` which checks both cases
-- **Bug:** For the standard 1-square perimeter capture, `switchTurn()` is NOT called. Only the vertical shot path calls `switchTurn()`. So normal king captures don't end the turn.
-- **Bug:** The condition `if (isTurn && targetPiece && pieceAtPos.color !== wizardKingPiece.color && pieceAtPos !== wizardKingPiece)` requires BOTH `targetPiece` (the clicked square has a piece) AND `pieceAtPos` (the first piece in the vertical scan) — if the clicked square IS the vertical target, both would be the same piece and this works; but the condition is convoluted
+- The vertical shot is the WizardKing's self-click ability (`abilityMode: 'boulder'` shared ranged flow); the 1-square perimeter capture is an ordinary king move through `handleMove`
+- **Engine port:** the perimeter capture goes through `handleMove`, which always calls `switchTurn`, so normal king captures now end the turn (original web bug #4 fixed)
 
 ---
 
@@ -721,6 +781,7 @@ Every piece object in the `pieces()` array has these fields:
 | `row` | `0–7` | — | Current row position |
 | `col` | `0–7` | — | Current column position |
 | `pawnLoaded` | `boolean` | `false` | DeadLauncher: whether a pawn is loaded |
+| `loadedPawnType` | `PieceType?` | `undefined` | DeadLauncher: which pawn-type was loaded (drives the launch sprite) |
 | `stunned` | `boolean` | `false` | GhostKnight: target is stunned and cannot act |
 | `raisesLeft` | `number` | `0` (GhoulKing: `1`) | GhoulKing: number of free raise actions remaining |
 | `pieceLoaded` | `PieceObject \| null` | `null` | Portal/QueenOfDomination: the stored/dominated piece |
@@ -804,4 +865,4 @@ All bugs from the original codebase have been addressed during the engine port.
 
 ---
 
-*Last updated: 2026-05-28 — Phase 5 (Army Builder) + Phase 7 (Online Multiplayer) complete. 379 tests across 36 suites.*
+*Last updated: 2026-05-31 — Phases 1–7 complete + pixel-art visual effects layer (Reanimated). 388 tests across 38 suites.*

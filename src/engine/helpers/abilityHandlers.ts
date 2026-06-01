@@ -166,7 +166,10 @@ export function handleLoadingAbility(state: GameState, square: Square): GameStat
   }
 
   if (loader.type === 'DeadLauncher') {
-    const updated = updatePiece(state.pieces, loader.id, { pawnLoaded: true });
+    const updated = updatePiece(state.pieces, loader.id, {
+      pawnLoaded: true,
+      loadedPawnType: target.type,
+    });
     const removed = updated.filter(p => p.id !== target.id);
     return checkWinCondition(switchTurn({
       ...state, pieces: removed, selectedSquare: null, highlights: [], abilityMode: { type: 'none' },
@@ -197,9 +200,20 @@ export function handleLaunchAbility(state: GameState, square: Square): GameState
     if (!target || target.color === launcher.color || target.isStone) return state;
 
     const result = handleCapture(target, launcher, state);
-    const updated = updatePiece(result.state.pieces, launcher.id, { pawnLoaded: false });
+    const spriteType = launcher.loadedPawnType ?? 'Pawn';
+    const updated = updatePiece(result.state.pieces, launcher.id, {
+      pawnLoaded: false,
+      loadedPawnType: undefined,
+    });
     const afterLaunch = {
       ...result.state, pieces: updated, selectedSquare: null, highlights: [], abilityMode: { type: 'none' } as const,
+      lastEffect: {
+        type: 'launch' as const,
+        from: { row: launcher.row, col: launcher.col },
+        to: { row: square.row, col: square.col },
+        spriteColor: launcher.color,
+        spriteType,
+      },
     };
     const revival = checkQoBRevival(target, afterLaunch, null);
     if (revival) return revival;

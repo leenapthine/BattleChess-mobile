@@ -69,6 +69,7 @@ export type Piece = {
   stunned: boolean;
   isStone: boolean;
   pawnLoaded: boolean;
+  loadedPawnType?: PieceType; // DeadLauncher: which pawn-type it loaded (for launch sprite)
   pieceLoaded: Piece | null;
   raisesLeft: number;
   gainedAbilities: GainedAbilities;

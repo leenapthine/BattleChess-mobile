@@ -141,6 +141,12 @@ Homebrew terminal aesthetic — black background, bright green accents, monospac
 - **Header** shows current turn, ability-mode instructions, and flash messages
 - **Sprites** pre-upscaled to 128×128 with nearest-neighbor for pixel-perfect rendering at any size
 
+### Visual effects (`src/screens/Game/effects/`)
+
+A Reanimated animation layer sits above the board. Two systems:
+- **Per-move** (no engine involvement): `AnimatedPiece` glides sprites (FLIP) and `DyingPiece` fades captures, detected by ID-diffing `pieces` in `GameView`.
+- **Ability effects**: the reducer writes a typed `Effect` to `GameState.lastEffect` (cleared to `null` on every other action); `EffectRenderer` routes it to a primitive that calls `onDone` to clear the queue. Most primitives are **hand-rolled pixel art** (grids of square `View`s — no SVG/Skia, so no native dep): `LightningBolt` (WizardKing/WizardTower), `FireBurst` (YoungWiz zap), `BoulderThrow` (BoulderThrower), `PixelExplosion` (NecroPawn detonate), `LaunchProjectile` (DeadLauncher — throws the loaded pawn's sprite, spinning), plus `Beam`/`StunPulse`/`StonePulse`. **Invariant:** every `EffectRenderer` branch must eventually call `onDone` or the queue stalls. See GAME_OVERVIEW.md "Visual Effects" for the full effect→primitive map.
+
 ## Phase status
 
 | Phase | Status |
