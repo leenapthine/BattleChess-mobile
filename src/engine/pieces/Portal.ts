@@ -77,5 +77,10 @@ export function performEject(
     selectedSquare: null,
     highlights: [],
     abilityMode: { type: 'none' },
+    lastEffect: {
+      type: 'portalOut',
+      from: { row: portal.row, col: portal.col },
+      to: { row: targetSquare.row, col: targetSquare.col },
+    },
   };
 }

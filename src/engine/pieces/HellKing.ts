@@ -26,5 +26,6 @@ export function performConvert(
     highlights: [],
     abilityMode: { type: 'none' },
     currentTurn: opponentColor(state.currentTurn),
+    lastEffect: { type: 'convert', at: { row: targetSquare.row, col: targetSquare.col } },
   };
 }

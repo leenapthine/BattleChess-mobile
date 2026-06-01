@@ -209,32 +209,41 @@ Primitives live in `src/screens/Game/effects/`. Most are hand-rolled **pixel art
 
 | Primitive | Shape |
 |---|---|
-| `Beam` | straight beam between two tiles |
-| `StunPulse` | yellow electric flash over a tile |
-| `StonePulse` | grey petrify flash over a tile |
-| `LightningBolt` | gold pixel-art bolt (jagged Bresenham staircase) between two tiles |
-| `FireBurst` | small pixel-art flame on a tile, flickers upward |
-| `BoulderThrow` | procedural lumpy pixel rock, arcs + spins to target |
-| `PixelExplosion` | spiky pixel burst that scales up with ease-in (slow → fast), then fades |
-| `LaunchProjectile` | the loaded pawn's actual sprite, hurled in an arc while spinning |
+| `LightningBolt` | gold pixel bolt (jagged Bresenham staircase) between two tiles |
+| `EyeBeam` | straight magenta pixel ray + iris flash at source |
+| `FireBurst` | small pixel flame on a tile, flickers upward |
+| `BoulderThrow` | lumpy pixel rock, arcs + spins to target, dust puff on impact |
+| `PixelExplosion` | spiky pixel burst that scales up ease-in (slow → fast), then fades |
+| `LaunchProjectile` | the loaded pawn's actual sprite, hurled spinning + debris on impact |
+| `PixelBurst` | configurable pixel particle poof — `out` / `in` / `up` modes, custom palette |
+| `StunPulse` | yellow pixel spark stars scattered around a tile |
+| `StonePulse` | grey pixel stone slab (outline + cracks) that slams in / eases out |
+
+(`Beam` still exists but is no longer wired in; `Shockwave`/`Projectile` were removed.)
 
 (`Shockwave` and `Projectile` still exist but are no longer wired in — superseded by the pixel-art primitives.)
 
-Currently emitted effects (9):
+All 17 `Effect` types are emitted and rendered:
 
 | Effect | Emitted by | Source module | Visual |
 |---|---|---|---|
 | `detonate` | NecroPawn sacrifice | `abilityHandlers.ts` | `PixelExplosion` (yellow, grows ease-in) |
-| `launch` | DeadLauncher pawn launch | `abilityHandlers.ts` | `LaunchProjectile` (loaded pawn sprite, spinning) |
-| `boulder` | BoulderThrower ranged throw | `abilityHandlers.ts` | `BoulderThrow` (pixel rock, arcs + spins) |
-| `beam` | Beholder eye beam | `abilityHandlers.ts` | magenta `Beam` |
+| `launch` | DeadLauncher pawn launch | `abilityHandlers.ts` | `LaunchProjectile` (loaded pawn sprite, spinning + debris) |
+| `boulder` | BoulderThrower ranged throw | `abilityHandlers.ts` | `BoulderThrow` (pixel rock, arcs + spins + dust) |
+| `beam` | Beholder eye beam | `abilityHandlers.ts` | `EyeBeam` (magenta pixel ray) |
 | `kingShot` | WizardKing vertical shot | `abilityHandlers.ts` | gold pixel `LightningBolt` |
 | `towerShot` | WizardTower ranged capture | `captureDispatch.ts` | gold pixel `LightningBolt` |
 | `zap` | YoungWiz forward zap | `captureDispatch.ts` | `FireBurst` flame on target |
-| `stun` | GhostKnight stun aura | `turnManager.ts` | yellow `StunPulse` per stunned square |
-| `stone` | Familiar turn-to-stone / revert | `Familiar.toggleStone` | grey `StonePulse` |
-
-The `Effect` union in `types/game.ts` also declares `raise`, `revive`, `transform`, `convert`, `dominate`, `swap`, `portalOut`, and `howlerAbsorb`. These are **reserved but not yet emitted/rendered** — they fall through to a no-op in `EffectRenderer` (which still fires `onDone` so the queue never stalls).
+| `stun` | GhostKnight stun aura | `turnManager.ts` | `StunPulse` pixel sparks per stunned square |
+| `stone` | Familiar turn-to-stone / revert | `Familiar.toggleStone` | `StonePulse` pixel stone slab |
+| `transform` | HellPawn transform (non-pawn) | `HellPawn.performCapture` | `PixelBurst` fire palette, `out` |
+| `convert` | HellKing convert | `HellKing.performConvert` | `PixelBurst` red→purple, `out` |
+| `howlerAbsorb` | Howler capture/absorb | `Howler.performCapture` | `PixelBurst` purple, `in` (converges) |
+| `raise` | Necromancer / GhoulKing raise | `abilityHandlers.ts` / `GhoulKing` | `PixelBurst` green, `up` |
+| `revive` | QueenOfBones revival | `QueenOfBones.performRevival` | `PixelBurst` green/white, `up` |
+| `dominate` | QueenOfDomination dominate | `QueenOfDomination.applyDomination` | `PixelBurst` violet, `out` |
+| `swap` | QueenOfIllusions phantom swap | `QueenOfIllusions.performSwap` | two cyan `PixelBurst` (both ends) |
+| `portalOut` | Portal eject | `Portal.performEject` | two blue `PixelBurst` (both ends) |
 
 **Invariant:** every `EffectRenderer` branch must eventually call `onDone`, or the effect queue stalls. The `stun` case guards against an empty `affected` array for exactly this reason.
 
@@ -358,7 +367,7 @@ The undead manipulation faction. Specializes in resurrection, sacrifice, and cro
 - After ANY move (including captures), all 4 orthogonally adjacent enemy pieces gain `stunned: true`
 - Stunned pieces cannot be selected or moved on the opponent's next turn
 - Stuns are applied AFTER the board is committed and BEFORE the turn switches
-- **Visual effect:** a yellow `StunPulse` flashes over each newly stunned square (`stun` effect, emitted from `turnManager.applyPostMoveEffects`)
+- **Visual effect:** `StunPulse` pixel spark-stars flicker around each newly stunned square (`stun` effect, emitted from `turnManager.applyPostMoveEffects`)
 
 **Edge Cases:**
 - The stun effect uses the GhostKnight's **post-move** position, not where it moved from
@@ -374,6 +383,7 @@ The undead manipulation faction. Specializes in resurrection, sacrifice, and cro
 **Special — Raise Dead (post-capture):**
 - After capturing any enemy piece (except QueenOfDestruction), all orthogonally adjacent empty tiles around the capture square are highlighted cyan
 - Player clicks one of these tiles → a standard `Pawn` of the Necromancer's color appears there
+- **Visual effect:** a green `PixelBurst` rises from the raised tile (`raise` effect)
 - The raise is optional (player can click elsewhere to skip, though the current implementation doesn't cleanly support skip — it just leaves the highlights up)
 - Cannot raise diagonally adjacent tiles; only orthogonal (N/S/E/W)
 
@@ -414,6 +424,7 @@ The undead manipulation faction. Specializes in resurrection, sacrifice, and cro
 - GhoulKing starts with `raisesLeft: 1`
 - **Click 2 (on self, while selected and raisesLeft > 0):** Highlights all adjacent empty tiles cyan
 - **Click 3 (adjacent empty tile):** Places a new NecroPawn of matching color; `raisesLeft` decremented to 0
+- **Visual effect:** a green `PixelBurst` rises from the raised tile (`raise` effect)
 - The raise ability is intended to be "free" — it should not consume the GhoulKing's move for that turn
 
 **Edge Cases:**
@@ -431,6 +442,7 @@ The undead manipulation faction. Specializes in resurrection, sacrifice, and cro
 - When a QueenOfBones is captured, `triggerQueenOfBonesRevival()` fires
 - If the owning player has **2 or more** friendly pawn-type units (`Pawn`, `NecroPawn`, `HellPawn`, `YoungWiz`, `PawnHopper`), those units are highlighted cyan
 - Player clicks 2 of them sequentially → both are removed → QueenOfBones re-spawns at its original spawn square (col 3, row 0 for White or row 7 for Black)
+- **Visual effect:** a green/white `PixelBurst` rises at the respawn square (`revive` effect)
 - If spawn square is occupied, revival silently fails and no refund occurs
 
 **Edge Cases:**
@@ -454,6 +466,7 @@ The demons use aggression, transformation, and explosive reactions to overwhelm 
 
 **Special — Transformation (on capture of non-pawn):**
 - When a HellPawn captures any enemy piece that is **NOT** a pawn-type (`Pawn`, `NecroPawn`, `HellPawn`, `YoungWiz`, `PawnHopper`), it permanently transforms into that piece
+- **Visual effect:** a fiery `PixelBurst` erupts at the capture square (`transform` effect; pawn-type captures are normal, no burst)
 - The transformed piece keeps the HellPawn's color; everything else (type, movement, abilities) is inherited from the captured piece
 - It also inherits the captured piece's `id`, `row`, `col`, and any other properties (including `isStone`, `stunned`, etc.) from the target — this could be a source of bugs
 
@@ -493,6 +506,7 @@ The demons use aggression, transformation, and explosive reactions to overwhelm 
 - Capturing a Queen-type → gains Queen movement (all directions)
 - Capturing a Pawn-type → gains Pawn movement (forward + diagonal capture)
 - Gains are **permanent and cumulative** — it can eventually move like a Queen with all extra modes
+- **Visual effect:** a purple `PixelBurst` converges inward on the Howler (`howlerAbsorb` effect, `in` mode)
 
 **Piece categorizations for ability gain:**
 - Knight-type: `Knight`, `BeastKnight`, `GhostKnight`, `Prowler`, `Familiar`
@@ -514,7 +528,7 @@ The demons use aggression, transformation, and explosive reactions to overwhelm 
 **Special — Ranged Boulder (2-click):**
 - **Click 2 (on self, while selected):** Enter boulder mode — highlights all squares within Manhattan distance ≤ 3 in red (enemy targets)
 - **Click (red tile):** Fires boulder → removes any enemy piece there; does NOT move the Beholder; turn ends
-- **Visual effect:** a magenta `Beam` fires from the Beholder to the target (`beam` effect)
+- **Visual effect:** a magenta pixel `EyeBeam` fires from the Beholder to the target, with an iris flash at source (`beam` effect)
 
 **Edge Cases:**
 - The Beholder's movement highlights ONLY empty squares — it cannot capture by moving, unlike standard pieces
@@ -531,6 +545,7 @@ The demons use aggression, transformation, and explosive reactions to overwhelm 
 **Special — Convert (instead of capture):**
 - When the HellKing moves onto a square occupied by an enemy piece, it does **not** remove that piece
 - Instead, the enemy piece's color is flipped to match the HellKing's team
+- **Visual effect:** a red→purple `PixelBurst` erupts on the converted piece (`convert` effect)
 - The converted piece stays at its current position
 - The HellKing does **not** move — it stays in place
 
@@ -645,6 +660,7 @@ The beast faction combines raw physical power with unusual mobility.
 - **Click (cyan adjacent friendly):** That piece temporarily becomes a `Queen` sprite and must immediately move
 - The original piece is stored inside the QueenOfDomination as `pieceLoaded`
 - After the dominated Queen moves, `returnOriginalSprite()` is called, reverting the piece to its original type at the new location
+- **Visual effect:** a violet `PixelBurst` marks the dominated piece when domination begins (`dominate` effect)
 - If the dominated piece has **no valid moves**, domination instantly reverts (the piece can't be dominated if it's trapped)
 - `isInDominationMode` blocks other clicks until the dominated move resolves
 
@@ -687,7 +703,7 @@ The wizard faction bends rules — repositioning, shooting, teleporting, and shi
 - **Click 2 (on self, while selected and not stone):** The Familiar becomes stone — `isStone = true`; turn ends
 - While stone: the Familiar cannot be captured (`handleCapture` checks `isStone`)
 - **Click (on self, while stone):** The Familiar reverts — `isStone = false`; does NOT consume a turn
-- **Visual effect:** a grey `StonePulse` flashes over the tile on both petrify and revert (`stone` effect, with `on: true/false`)
+- **Visual effect:** a grey `StonePulse` pixel stone slab slams in (petrify) or eases out (revert) over the tile (`stone` effect, with `on: true/false`)
 
 **Edge Cases:**
 - Stone pieces are immune to ALL capture methods (regular capture, boulder throws, AoE sacrifices, etc.) because `handleCapture` returns early if `capturedPiece.isStone`
@@ -725,6 +741,8 @@ The wizard faction bends rules — repositioning, shooting, teleporting, and shi
 4. **Click 4 (on any loaded Portal):** Enter Eject Mode → adjacent tiles highlighted cyan (to choose ejection square)
 5. **Click 5 (adjacent empty tile):** Eject → piece is placed there; all friendly Portals cleared; does NOT end turn
 
+**Visual effect:** blue `PixelBurst` shimmers at both the Portal and the eject square (`portalOut` effect).
+
 **Edge Cases:**
 - The stored piece is shared across ALL same-color Portals — any Portal can eject it
 - Ejection does not consume the turn (`switchTurn()` is NOT called after eject)
@@ -759,6 +777,7 @@ The wizard faction bends rules — repositioning, shooting, teleporting, and shi
 **Special — Phantom Swap:**
 - All friendly pawn-type pieces (`Pawn`, `NecroPawn`, `HellPawn`, `YoungWiz`, `PawnHopper`) are highlighted cyan when the QueenOfIllusions is selected
 - Clicking a cyan pawn-type instantly swaps their positions with the QueenOfIllusions; turn ends
+- **Visual effect:** cyan `PixelBurst` shimmers at both swapped squares (`swap` effect)
 
 **Edge Cases:**
 - The Queen and the pawn do NOT need to be adjacent — any friendly pawn-type on the board is eligible
@@ -865,4 +884,4 @@ All bugs from the original codebase have been addressed during the engine port.
 
 ---
 
-*Last updated: 2026-05-31 — Phases 1–7 complete + pixel-art visual effects layer (Reanimated). 388 tests across 38 suites.*
+*Last updated: 2026-06-01 — Phases 1–7 complete + full pixel-art visual effects layer (Reanimated): all 17 ability effects emitted/rendered, plus per-move glide/death-fade and projectile impact dust. 388 tests across 38 suites.*

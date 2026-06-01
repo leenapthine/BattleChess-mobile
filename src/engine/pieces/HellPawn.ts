@@ -54,5 +54,8 @@ export function performCapture(
     highlights: [],
     abilityMode: { type: 'none' },
     currentTurn: opponentColor(state.currentTurn),
+    lastEffect: isPawnType
+      ? state.lastEffect
+      : { type: 'transform', at: { row: targetSquare.row, col: targetSquare.col } },
   };
 }

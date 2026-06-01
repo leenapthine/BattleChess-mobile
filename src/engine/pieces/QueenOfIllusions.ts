@@ -44,5 +44,10 @@ export function performSwap(
     highlights: [],
     abilityMode: { type: 'none' },
     currentTurn: opponentColor(state.currentTurn),
+    lastEffect: {
+      type: 'swap',
+      from: { row: queen.row, col: queen.col },
+      to: { row: target.row, col: target.col },
+    },
   };
 }

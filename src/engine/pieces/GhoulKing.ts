@@ -49,5 +49,10 @@ export function performRaise(
     selectedSquare: null,
     highlights: [],
     abilityMode: { type: 'none' },
+    lastEffect: {
+      type: 'raise',
+      from: { row: ghoulKing.row, col: ghoulKing.col },
+      at: { row: target.row, col: target.col },
+    },
   };
 }

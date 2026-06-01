@@ -61,5 +61,6 @@ export function performRevival(
     ...state,
     pieces: [...updatedPieces, revivedQueen],
     abilityMode: { type: 'none' },
+    lastEffect: { type: 'revive', at: { row: spawnRow, col: spawnCol } },
   };
 }

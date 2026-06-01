@@ -60,6 +60,11 @@ export function applyDomination(
     selectedSquare: { row: dominated.row, col: dominated.col },
     highlights: queenModule ? queenModule.getValidMoves(dominated, updatedPieces) : [],
     abilityMode: { type: 'domination', pieceId: queen.id },
+    lastEffect: {
+      type: 'dominate',
+      from: { row: queen.row, col: queen.col },
+      to: { row: target.row, col: target.col },
+    },
   };
 }
 

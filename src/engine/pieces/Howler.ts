@@ -71,6 +71,7 @@ export function performCapture(
     highlights: [],
     abilityMode: { type: 'none' },
     currentTurn: opponentColor(state.currentTurn),
+    lastEffect: { type: 'howlerAbsorb', at: { row: targetSquare.row, col: targetSquare.col } },
   };
 }
 

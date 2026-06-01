@@ -144,6 +144,7 @@ export function handleResurrectionAbility(state: GameState, square: Square): Gam
     selectedSquare: null,
     highlights: [],
     abilityMode: { type: 'none' },
+    lastEffect: { type: 'raise', from: square, at: square },
   }));
 }
 
