@@ -1,7 +1,6 @@
 import type { Piece, Highlight, GameState } from '@/types/game';
 import { getQueenMoves } from '@/engine/helpers/moveHelpers';
 import { getAllAdjacentSquares, getPieceAt, updatePiece } from '@/engine/utils';
-import { getPieceModule } from './index';
 
 export function getValidMoves(piece: Piece, pieces: Piece[]): Highlight[] {
   return getQueenMoves(piece, pieces);
@@ -42,10 +41,11 @@ export function applyDomination(
     return p;
   });
 
-  const queenModule = getPieceModule('Queen');
-  const hasMoves = queenModule
-    ? queenModule.getValidMoves(dominated, updatedPieces).length > 0
-    : false;
+  // The dominated piece becomes a Queen, so its moves are queen moves.
+  // Call getQueenMoves directly (not via the piece barrel) to avoid an
+  // index.ts ↔ QueenOfDomination.ts require cycle.
+  const queenMoves = getQueenMoves(dominated, updatedPieces);
+  const hasMoves = queenMoves.length > 0;
 
   if (!hasMoves) {
     return revertDomination(updatedQueen, dominated, {
@@ -58,7 +58,7 @@ export function applyDomination(
     ...state,
     pieces: updatedPieces,
     selectedSquare: { row: dominated.row, col: dominated.col },
-    highlights: queenModule ? queenModule.getValidMoves(dominated, updatedPieces) : [],
+    highlights: queenMoves,
     abilityMode: { type: 'domination', pieceId: queen.id },
     lastEffect: {
       type: 'dominate',
