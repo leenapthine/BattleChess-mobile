@@ -28,5 +28,10 @@ export function toggleStone(
     highlights: [],
     abilityMode: { type: 'none' },
     currentTurn: wasStone ? state.currentTurn : opponentColor(state.currentTurn),
+    lastEffect: {
+      type: 'stone',
+      at: { row: familiar.row, col: familiar.col },
+      on: !wasStone,
+    },
   };
 }

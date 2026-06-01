@@ -118,6 +118,7 @@ export function useGame({ p1Army, p2Army, timePerTurnSeconds }: Props) {
     highlights: state.highlights,
     abilityMode: state.abilityMode,
     status: state.status,
+    lastEffect: state.lastEffect,
     flashMessage,
     whiteTimeMs,
     blackTimeMs,

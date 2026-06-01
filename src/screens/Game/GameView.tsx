@@ -1,13 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Pressable, Text, StyleSheet, useWindowDimensions } from 'react-native';
-import type { Piece, Square, Highlight, GameStatus } from '@/types/game';
+import type { Piece, Square, Highlight, GameStatus, Effect } from '@/types/game';
 import { BOARD, HIGHLIGHT, COLORS, FONT } from '@/constants/theme';
 import { AnimatedPiece } from './AnimatedPiece';
 import { DyingPiece } from './DyingPiece';
+import { EffectRenderer } from './EffectRenderer';
 
 type DyingEntry = {
   piece: Piece;
   dyingId: string;
+};
+
+type EffectEntry = {
+  effect: Effect;
+  fxId: string;
 };
 
 type Props = {
@@ -16,12 +22,13 @@ type Props = {
   selectedCanActivate: boolean;
   highlights: Highlight[];
   status: GameStatus;
+  lastEffect: Effect | null;
   onSquarePress: (square: Square) => void;
   onNewGame?: () => void;
   onMainMenu?: () => void;
 };
 
-export function GameView({ pieces, selectedSquare, selectedCanActivate, highlights, status, onSquarePress, onNewGame, onMainMenu }: Props) {
+export function GameView({ pieces, selectedSquare, selectedCanActivate, highlights, status, lastEffect, onSquarePress, onNewGame, onMainMenu }: Props) {
   const { width } = useWindowDimensions();
   const boardSize = Math.min(width - 16, 400);
   const tileSize = boardSize / 8;
@@ -59,6 +66,20 @@ export function GameView({ pieces, selectedSquare, selectedCanActivate, highligh
 
   const removeDying = (dyingId: string) => {
     setDying((curr) => curr.filter((d) => d.dyingId !== dyingId));
+  };
+
+  // Visual effect queue. Each non-null lastEffect produces one queue entry.
+  // Each EffectRenderer's onDone removes its entry when its animation ends.
+  const [fxQueue, setFxQueue] = useState<EffectEntry[]>([]);
+  useEffect(() => {
+    if (!lastEffect) return;
+    setFxQueue((curr) => [
+      ...curr,
+      { effect: lastEffect, fxId: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}` },
+    ]);
+  }, [lastEffect]);
+  const removeFx = (fxId: string) => {
+    setFxQueue((curr) => curr.filter((e) => e.fxId !== fxId));
   };
 
   return (
@@ -138,6 +159,14 @@ export function GameView({ pieces, selectedSquare, selectedCanActivate, highligh
           piece={d.piece}
           tileSize={tileSize}
           onDone={() => removeDying(d.dyingId)}
+        />
+      ))}
+      {fxQueue.map(({ fxId, effect }) => (
+        <EffectRenderer
+          key={fxId}
+          effect={effect}
+          tileSize={tileSize}
+          onDone={() => removeFx(fxId)}
         />
       ))}
       {status.type === 'won' && (

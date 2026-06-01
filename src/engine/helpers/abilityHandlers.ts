@@ -99,13 +99,18 @@ export function handleSacrificeAbility(state: GameState, square: Square): GameSt
   if (squaresEqual(square, { row: piece.row, col: piece.col })) {
     const sacrificeResult = performSacrifice(piece, state);
     const killed = state.pieces.filter(p => !sacrificeResult.pieces.find(sp => sp.id === p.id));
+    const detonateEffect = {
+      type: 'detonate' as const,
+      from: { row: piece.row, col: piece.col },
+      affected: killed.map(p => ({ row: p.row, col: p.col })),
+    };
     const deadQoB = killed.find(p => p.type === 'QueenOfBones');
     if (deadQoB) {
-      const revivalState = { ...sacrificeResult, currentTurn: state.currentTurn };
+      const revivalState = { ...sacrificeResult, currentTurn: state.currentTurn, lastEffect: detonateEffect };
       const revival = checkQoBRevival(deadQoB, revivalState, null);
       if (revival) return revival;
     }
-    return checkWinCondition(sacrificeResult);
+    return checkWinCondition({ ...sacrificeResult, lastEffect: detonateEffect });
   }
 
   return { ...state, selectedSquare: null, highlights: [], abilityMode: { type: 'none' } };
@@ -224,8 +229,23 @@ export function handleBoulderAbility(state: GameState, square: Square): GameStat
   if (!target || target.isStone || target.color === thrower.color) return state;
 
   const result = handleCapture(target, thrower, state);
+  // Different visual per ranged attacker. BoulderThrower lobs a boulder
+  // arc, Beholder fires an eye beam, WizardKing shoots a vertical beam.
+  const effectType =
+    thrower.type === 'Beholder' ? 'beam' as const
+    : thrower.type === 'WizardKing' ? 'kingShot' as const
+    : 'boulder' as const;
+  const rangedEffect = {
+    type: effectType,
+    from: { row: thrower.row, col: thrower.col },
+    to: { row: target.row, col: target.col },
+  };
   const afterBoulder = {
-    ...result.state, selectedSquare: null, highlights: [], abilityMode: { type: 'none' } as const,
+    ...result.state,
+    selectedSquare: null,
+    highlights: [],
+    abilityMode: { type: 'none' } as const,
+    lastEffect: rangedEffect,
   };
   const revival = checkQoBRevival(target, afterBoulder, null);
   if (revival) return revival;

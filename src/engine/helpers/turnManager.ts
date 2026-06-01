@@ -1,5 +1,5 @@
 import type { Piece, GameState, Color } from '@/types/game';
-import { applyStunEffect } from '@/engine/pieces/GhostKnight';
+import { applyStunEffect, getStunnedSquares } from '@/engine/pieces/GhostKnight';
 
 export function switchTurn(state: GameState): GameState {
   const nextTurn: Color = state.currentTurn === 'White' ? 'Black' : 'White';
@@ -26,5 +26,13 @@ export function applyPostMoveEffects(
   state: GameState,
 ): GameState {
   const piecesAfterStun = applyStunEffect(movedPiece, state.pieces);
-  return { ...state, pieces: piecesAfterStun };
+  const stunned = getStunnedSquares(movedPiece, state.pieces);
+  return {
+    ...state,
+    pieces: piecesAfterStun,
+    lastEffect:
+      stunned.length > 0
+        ? { type: 'stun', from: { row: movedPiece.row, col: movedPiece.col }, affected: stunned }
+        : state.lastEffect,
+  };
 }

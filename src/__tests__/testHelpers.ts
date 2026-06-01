@@ -45,6 +45,7 @@ export function makeState(pieces: Piece[], overrides?: Partial<GameState>): Game
     highlights: [],
     abilityMode: { type: 'none' },
     status: { type: 'active' },
+    lastEffect: null,
     armyConfigs: {
       p1: makeFullyUpgradedArmy('Beast'),
       p2: makeFullyUpgradedArmy('Wizard'),

@@ -66,6 +66,7 @@ export function createInitialState(p1Army: ArmyConfig, p2Army: ArmyConfig): Game
     highlights: [],
     abilityMode: { type: 'none' },
     status: { type: 'active' },
+    lastEffect: null,
     armyConfigs: { p1: p1Army, p2: p2Army },
   };
 }

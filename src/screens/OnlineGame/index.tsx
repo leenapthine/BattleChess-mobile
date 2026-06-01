@@ -33,7 +33,7 @@ export function OnlineGameScreen({
 }: Props) {
   const {
     pieces, currentTurn, selectedSquare, selectedPiece, selectedCanActivate,
-    highlights, abilityMode, status, isMyTurn, onSquarePress,
+    highlights, abilityMode, status, lastEffect, isMyTurn, onSquarePress,
   } = useOnlineGame({
     gameId, initialState, remoteState, myColor,
     hostTimeMs, guestTimeMs, turnStartedAt, isHost,
@@ -85,6 +85,7 @@ export function OnlineGameScreen({
         selectedCanActivate={selectedCanActivate}
         highlights={highlights}
         status={status}
+        lastEffect={lastEffect}
         onSquarePress={onSquarePress}
         onMainMenu={onExit}
       />

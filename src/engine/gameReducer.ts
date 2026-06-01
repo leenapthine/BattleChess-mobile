@@ -27,6 +27,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
   }
   if (state.status.type === 'won') return state;
 
+  // Reset any previously emitted visual effect so it doesn't re-fire on
+  // subsequent actions. Handlers that emit effects override lastEffect
+  // in their returned state.
+  state = { ...state, lastEffect: null };
+
   const prevPieces = state.pieces;
   let next: GameState;
 

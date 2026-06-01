@@ -110,6 +110,7 @@ export function useOnlineGame({
     highlights: state.highlights,
     abilityMode: state.abilityMode,
     status: state.status,
+    lastEffect: state.lastEffect,
     isMyTurn,
     onSquarePress,
   };

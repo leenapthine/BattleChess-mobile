@@ -26,6 +26,7 @@ export function GameScreen({ p1Army, p2Army, timePerTurnSeconds, onMainMenu }: P
     highlights,
     abilityMode,
     status,
+    lastEffect,
     flashMessage,
     whiteTimeMs,
     blackTimeMs,
@@ -77,6 +78,7 @@ export function GameScreen({ p1Army, p2Army, timePerTurnSeconds, onMainMenu }: P
         selectedCanActivate={selectedCanActivate}
         highlights={highlights}
         status={status}
+        lastEffect={lastEffect}
         onSquarePress={onSquarePress}
         onNewGame={onNewGame}
         onMainMenu={onMainMenu}

@@ -19,10 +19,19 @@ export function dispatchPieceCapture(
   state: GameState,
 ): GameState | null {
   switch (piece.type) {
-    // WizardTower: ranged capture — stays in place
+    // WizardTower: ranged capture — stays in place, fires a laser
     case 'WizardTower': {
       const result = performRangedCapture(piece, to, state);
-      return maybeQoBRevival(target, result, null);
+      if (result === state) return null; // capture rejected — fall through
+      const withEffect: GameState = {
+        ...result,
+        lastEffect: {
+          type: 'towerShot',
+          from: { row: piece.row, col: piece.col },
+          to,
+        },
+      };
+      return maybeQoBRevival(target, withEffect, null);
     }
     // HellKing: converts enemy color instead of removing
     case 'HellKing':
@@ -49,6 +58,11 @@ export function dispatchPieceCapture(
           selectedSquare: null,
           highlights: [],
           abilityMode: { type: 'none' },
+          lastEffect: {
+            type: 'zap',
+            from: { row: piece.row, col: piece.col },
+            to,
+          },
         };
         return checkQoBRevival(target, zapResult, null)
           ?? checkWinCondition(switchTurn(zapResult));
