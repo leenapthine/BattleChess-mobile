@@ -1,5 +1,5 @@
 import { useReducer, useCallback, useMemo, useRef, useState, useEffect } from 'react';
-import type { Square } from '@/types/game';
+import type { Color, Square } from '@/types/game';
 import type { ArmyConfig } from '@/types/army';
 import { gameReducer } from '@/engine/gameReducer';
 import { classifyAction } from '@/engine/helpers/classifyAction';
@@ -9,14 +9,38 @@ import { hasSelfClickAbility } from '@/engine/pieceTraits';
 type Props = {
   p1Army: ArmyConfig;
   p2Army: ArmyConfig;
+  timePerTurnSeconds: number | null; // null = no timer (∞)
 };
 
-export function useGame({ p1Army, p2Army }: Props) {
+export function useGame({ p1Army, p2Army, timePerTurnSeconds }: Props) {
   const [state, dispatch] = useReducer(
     gameReducer,
     { p1Army, p2Army },
     (args) => createInitialState(args.p1Army, args.p2Army),
   );
+
+  // Per-player time banks (null = unlimited). Reset when the game resets or
+  // the timer setting changes.
+  const initialBankMs = timePerTurnSeconds === null ? null : timePerTurnSeconds * 1000;
+  const [whiteTimeMs, setWhiteTimeMs] = useState<number | null>(initialBankMs);
+  const [blackTimeMs, setBlackTimeMs] = useState<number | null>(initialBankMs);
+  const [turnStartedAt, setTurnStartedAt] = useState<string>(() => new Date().toISOString());
+  const prevTurnRef = useRef<Color>(state.currentTurn);
+
+  // When the turn changes, deduct elapsed time from the player who just moved
+  // and reset the turn-started timestamp for the next player.
+  useEffect(() => {
+    if (state.currentTurn === prevTurnRef.current) return;
+    const justMoved = prevTurnRef.current;
+    const elapsed = Date.now() - new Date(turnStartedAt).getTime();
+    if (justMoved === 'White') {
+      setWhiteTimeMs((curr) => (curr === null ? null : Math.max(0, curr - elapsed)));
+    } else {
+      setBlackTimeMs((curr) => (curr === null ? null : Math.max(0, curr - elapsed)));
+    }
+    setTurnStartedAt(new Date().toISOString());
+    prevTurnRef.current = state.currentTurn;
+  }, [state.currentTurn, turnStartedAt]);
 
   const onSquarePress = useCallback(
     (square: Square) => {
@@ -28,11 +52,23 @@ export function useGame({ p1Army, p2Army }: Props) {
 
   const onNewGame = useCallback(() => {
     dispatch({ type: 'RESET_GAME' });
-  }, []);
+    setWhiteTimeMs(initialBankMs);
+    setBlackTimeMs(initialBankMs);
+    setTurnStartedAt(new Date().toISOString());
+    prevTurnRef.current = 'White';
+  }, [initialBankMs]);
 
   const onResign = useCallback(() => {
     dispatch({ type: 'RESIGN', resigningColor: state.currentTurn });
   }, [state.currentTurn]);
+
+  const onTimeout = useCallback(
+    (color: Color) => {
+      if (state.status.type !== 'active') return;
+      dispatch({ type: 'RESIGN', resigningColor: color });
+    },
+    [state.status.type],
+  );
 
   const selectedPiece = useMemo(() => {
     if (!state.selectedSquare) return null;
@@ -83,8 +119,12 @@ export function useGame({ p1Army, p2Army }: Props) {
     abilityMode: state.abilityMode,
     status: state.status,
     flashMessage,
+    whiteTimeMs,
+    blackTimeMs,
+    turnStartedAt,
     onSquarePress,
     onNewGame,
     onResign,
+    onTimeout,
   };
 }

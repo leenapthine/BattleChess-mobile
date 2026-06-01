@@ -169,7 +169,7 @@ export default function App() {
   const handlePointCapSubmit = async (pointCap: number, timePerTurnSeconds: number | null) => {
     if (screen.type !== 'pointCap') return;
     if (screen.mode === 'local') {
-      goTo({ type: 'armyBuilder', player: 1, pointCap });
+      goTo({ type: 'armyBuilder', player: 1, pointCap, timePerTurnSeconds });
     } else {
       if (!userId || !profile) return;
       try {
@@ -230,7 +230,12 @@ export default function App() {
           player={1}
           pointCap={screen.pointCap}
           onConfirm={(army) =>
-            goTo({ type: 'handoff', pointCap: screen.pointCap, player1Army: army })
+            goTo({
+              type: 'handoff',
+              pointCap: screen.pointCap,
+              timePerTurnSeconds: screen.timePerTurnSeconds,
+              player1Army: army,
+            })
           }
         />
       )}
@@ -241,6 +246,7 @@ export default function App() {
               type: 'armyBuilder',
               player: 2,
               pointCap: screen.pointCap,
+              timePerTurnSeconds: screen.timePerTurnSeconds,
               player1Army: screen.player1Army,
             })
           }
@@ -251,7 +257,12 @@ export default function App() {
           player={2}
           pointCap={screen.pointCap}
           onConfirm={(army) =>
-            goTo({ type: 'game', player1Army: screen.player1Army!, player2Army: army })
+            goTo({
+              type: 'game',
+              player1Army: screen.player1Army!,
+              player2Army: army,
+              timePerTurnSeconds: screen.timePerTurnSeconds,
+            })
           }
         />
       )}
@@ -259,6 +270,7 @@ export default function App() {
         <GameScreen
           p1Army={screen.player1Army}
           p2Army={screen.player2Army}
+          timePerTurnSeconds={screen.timePerTurnSeconds}
           onMainMenu={resetToLobby}
         />
       )}
