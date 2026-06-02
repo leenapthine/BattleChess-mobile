@@ -15,10 +15,13 @@ type Props = {
   guestTimeMs: number | null;
   turnStartedAt: string | null;
   isHost: boolean;
+  // Read-only watcher: never my turn, taps only inspect, never writes to the DB.
+  spectator?: boolean;
 };
 
 export function useOnlineGame({
   gameId, initialState, remoteState, myColor, hostTimeMs, guestTimeMs, turnStartedAt, isHost,
+  spectator = false,
 }: Props) {
   const [state, setState] = useState<GameState>(initialState);
 
@@ -33,7 +36,8 @@ export function useOnlineGame({
     }
   }, [remoteState]);
 
-  const isMyTurn = state.currentTurn === myColor;
+  // A spectator never has a turn, so they never reach the write path below.
+  const isMyTurn = !spectator && state.currentTurn === myColor;
 
   // Replay recording — driven by `state` transitions, which covers both my
   // own reducer moves and the opponent's moves arriving via remote sync
@@ -43,6 +47,24 @@ export function useOnlineGame({
   const onSquarePress = useCallback(
     async (square: Square) => {
       const action = classifyAction(square, state);
+
+      // Spectator: read-only inspection of EITHER side. Selecting a piece
+      // previews its moves in grey; nothing is ever written to the DB.
+      if (spectator) {
+        if (action.type === 'SELECT_SQUARE') {
+          const piece = state.pieces.find(p => p.row === square.row && p.col === square.col);
+          const inspectColor = piece ? piece.color : state.currentTurn;
+          const next = gameReducer({ ...state, currentTurn: inspectColor }, action);
+          setState({
+            ...next,
+            currentTurn: state.currentTurn,
+            highlights: next.highlights.map(h => ({ ...h, color: 'preview' as const })),
+          });
+        } else if (action.type === 'DESELECT') {
+          setState(gameReducer(state, action));
+        }
+        return;
+      }
 
       // When it's not my turn, allow only inspection (select/deselect).
       // Force all highlights to 'preview' (grey) — both mine and opponent's.
@@ -87,7 +109,7 @@ export function useOnlineGame({
         console.error('writeGameState failed', err);
       }
     },
-    [state, isMyTurn, myColor, gameId, hostTimeMs, guestTimeMs, turnStartedAt, isHost],
+    [state, isMyTurn, spectator, myColor, gameId, hostTimeMs, guestTimeMs, turnStartedAt, isHost],
   );
 
   const selectedPiece = useMemo(() => {

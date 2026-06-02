@@ -294,6 +294,15 @@ Each online game can opt in to a total-time budget (10 / 20 / 30 / 45 / 60 min, 
 #### Lobby chat
 A global terminal-style chat room sits at the top of the lobby screen, backed by a `chat_messages` table and a Supabase Realtime channel. A trigger enforces a 1-message-per-2-seconds rate limit per user; client caps each message at 300 chars.
 
+#### Spectating
+Any signed-in user can watch an in-progress game read-only — no extra game logic, since the DB is already the source of truth and every sub-move is written to `game_state`.
+
+- **Discovery** — the lobby shows a **LIVE GAMES** list (`listActiveGames`, status `'active'`) alongside the joinable **OPEN GAMES**, each with a **VIEW** button. Games you're playing in are filtered out.
+- **Entry** — `spectate()` loads the game row and sets `isSpectating` **without** joining (no `guest_id` write). Routing sends spectators to a separate screen so they never land in the waiting room / army builder.
+- **Read-only** — the spectator reuses `OnlineGameScreen` with the `spectator` flag: it's never their turn, the timer/concede/write paths are all skipped, and taps only inspect a piece's range (grey preview, either color). Incoming `game_state` updates render live with full animations, effects, and SFX. An **EXIT** button (spectators only — players keep Concede) returns to the lobby; a finished game shows the win overlay first.
+- **Security** — gated by the `games_read_spectate` RLS policy (SELECT on `active`/`finished` games). There is no matching write policy, so spectators are read-only by construction; Realtime respects RLS, so the live stream is unlocked by the same policy.
+- **Viewer count** — a per-game Realtime **presence** channel (`lib/presence.ts`) that both players and spectators join, each tracking `{ role, name }`. The `👁 N` indicator is shown to everyone and is tappable, opening a closable modal that lists every watcher's name (de-duped by user).
+
 The full schema is in `supabase/schema.sql`. RLS is enabled on all tables.
 
 ---

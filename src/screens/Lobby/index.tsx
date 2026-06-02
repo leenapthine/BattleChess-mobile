@@ -14,11 +14,13 @@ import { ChatView } from './ChatView';
 type Props = {
   displayName: string;
   openGames: GameRow[];
+  liveGames: GameRow[];
   loading: boolean;
   myUserId: string;
   onPlayLocal: () => void;
   onCreateOnline: () => void;
   onJoinGame: (gameId: string) => void;
+  onSpectate: (gameId: string) => void;
   onSignOut: () => void;
 };
 
@@ -27,14 +29,20 @@ const CHAT_HEIGHT = 240;
 export function LobbyScreen({
   displayName,
   openGames,
+  liveGames,
   loading,
   myUserId,
   onPlayLocal,
   onCreateOnline,
   onJoinGame,
+  onSpectate,
   onSignOut,
 }: Props) {
   const otherGames = openGames.filter((g) => g.host_id !== myUserId);
+  // Don't offer to spectate a game you're playing in.
+  const watchableGames = liveGames.filter(
+    (g) => g.host_id !== myUserId && g.guest_id !== myUserId,
+  );
 
   const chatMessages = useChatStore((s) => s.messages);
   const chatStatus = useChatStore((s) => s.status);
@@ -72,14 +80,14 @@ export function LobbyScreen({
         <Text style={styles.modeDesc}>create a game and wait for opponent</Text>
       </Pressable>
 
-      <View style={styles.sectionRow}>
-        <Text style={styles.sectionLabel}>OPEN GAMES</Text>
-        {loading && <ActivityIndicator size="small" color={COLORS.text} />}
-      </View>
       <ScrollView
         style={styles.gamesScroll}
         contentContainerStyle={styles.gamesContent}
       >
+        <View style={styles.sectionRow}>
+          <Text style={styles.sectionLabel}>OPEN GAMES</Text>
+          {loading && <ActivityIndicator size="small" color={COLORS.text} />}
+        </View>
         {otherGames.length === 0 && !loading && (
           <Text style={styles.empty}>no open games yet</Text>
         )}
@@ -90,6 +98,20 @@ export function LobbyScreen({
               <Text style={styles.gamePoints}>{g.point_cap} pts</Text>
             </View>
             <Text style={styles.joinText}>JOIN</Text>
+          </Pressable>
+        ))}
+
+        <Text style={styles.sectionLabel}>LIVE GAMES</Text>
+        {watchableGames.length === 0 && (
+          <Text style={styles.empty}>no games in progress</Text>
+        )}
+        {watchableGames.map((g) => (
+          <Pressable key={g.id} style={styles.gameRow} onPress={() => onSpectate(g.id)}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.gameHost}>{g.host_name} vs {g.guest_name ?? '?'}</Text>
+              <Text style={styles.gamePoints}>{g.point_cap} pts</Text>
+            </View>
+            <Text style={styles.viewText}>VIEW</Text>
           </Pressable>
         ))}
       </ScrollView>
@@ -159,6 +181,16 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.border,
     paddingHorizontal: 12,
     paddingVertical: 6,
+    borderRadius: 4,
+  },
+  viewText: {
+    color: COLORS.text,
+    fontFamily: FONT.monoBold,
+    fontSize: 12,
+    borderWidth: 1,
+    borderColor: COLORS.text,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
     borderRadius: 4,
   },
 });

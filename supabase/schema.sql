@@ -62,6 +62,16 @@ create policy "games_read_lobby" on public.games
     )
   );
 
+-- Spectating: any authenticated user may read in-progress / finished games
+-- (read-only — there is no matching write policy, so spectators can never
+-- mutate. Combined with the lobby policy above, a non-participant can read a
+-- game only once it is 'active' or 'finished'.)
+create policy "games_read_spectate" on public.games
+  for select using (
+    auth.role() = 'authenticated'
+    and status in ('active', 'finished')
+  );
+
 create policy "games_insert_as_host" on public.games
   for insert with check (auth.uid() = host_id);
 
@@ -148,3 +158,10 @@ alter publication supabase_realtime add table public.chat_messages;
 --   add column if not exists host_time_ms int,
 --   add column if not exists guest_time_ms int,
 --   add column if not exists turn_started_at timestamptz;
+
+-- Enable spectating on an existing games table (run in the SQL editor):
+-- create policy "games_read_spectate" on public.games
+--   for select using (
+--     auth.role() = 'authenticated'
+--     and status in ('active', 'finished')
+--   );

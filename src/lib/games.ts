@@ -39,6 +39,29 @@ export async function listOpenGames(): Promise<GameRow[]> {
   return (data ?? []) as GameRow[];
 }
 
+// Games currently in progress — backs the spectator "Live Games" list. No
+// time cutoff: an active game is real even if a slow turn leaves it idle.
+export async function listActiveGames(): Promise<GameRow[]> {
+  const { data, error } = await supabase
+    .from('games')
+    .select('*')
+    .eq('status', 'active')
+    .order('last_action_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as GameRow[];
+}
+
+// Fetch a single game row (used when a spectator opens a game to watch).
+export async function getGame(gameId: string): Promise<GameRow | null> {
+  const { data, error } = await supabase
+    .from('games')
+    .select('*')
+    .eq('id', gameId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data ?? null) as GameRow | null;
+}
+
 export async function findMyActiveGame(userId: string): Promise<GameRow | null> {
   const { data, error } = await supabase
     .from('games')
@@ -217,7 +240,10 @@ export function subscribeToLobby(onChange: () => void) {
     .channel('lobby_games')
     .on(
       'postgres_changes',
-      { event: '*', schema: 'public', table: 'games', filter: 'status=eq.waiting' },
+      // No status filter: the lobby shows BOTH waiting (joinable) and active
+      // (watchable) games, so it must react to status transitions in either
+      // direction (a waiting game starting, an active game finishing).
+      { event: '*', schema: 'public', table: 'games' },
       () => onChange(),
     )
     .subscribe();

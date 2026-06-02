@@ -18,6 +18,7 @@ import { useScreenStore } from '@/stores/screenStore';
 import { useGamesStore } from '@/stores/gamesStore';
 import { useChatStore } from '@/stores/chatStore';
 import { submitArmy, startGame, endOnlineGame } from '@/lib/games';
+import { joinGamePresence, type Spectator } from '@/lib/presence';
 import { createInitialState } from '@/engine/initialBoard';
 import { COLORS } from '@/constants/theme';
 
@@ -40,18 +41,27 @@ export default function App() {
   const resetToLobby = useScreenStore((s) => s.resetToLobby);
 
   const openGames = useGamesStore((s) => s.openGames);
+  const liveGames = useGamesStore((s) => s.liveGames);
   const gamesLoading = useGamesStore((s) => s.loading);
   const fetchOpenGames = useGamesStore((s) => s.fetchOpenGames);
+  const fetchLiveGames = useGamesStore((s) => s.fetchLiveGames);
   const startLobbySub = useGamesStore((s) => s.startLobbySubscription);
   const stopLobbySub = useGamesStore((s) => s.stopLobbySubscription);
   const createGameAction = useGamesStore((s) => s.createGame);
   const joinGameAction = useGamesStore((s) => s.joinGame);
   const cancelGameAction = useGamesStore((s) => s.cancelGame);
+  const spectateAction = useGamesStore((s) => s.spectate);
+  const exitSpectate = useGamesStore((s) => s.exitSpectate);
+  const isSpectating = useGamesStore((s) => s.isSpectating);
   const setCurrentGame = useGamesStore((s) => s.setCurrentGame);
   const currentGame = useGamesStore((s) => s.currentGame);
   const restoreMyGame = useGamesStore((s) => s.restoreMyGame);
   const startGameSub = useGamesStore((s) => s.startGameSubscription);
   const stopGameSub = useGamesStore((s) => s.stopGameSubscription);
+
+  // Live spectator list for the game currently on screen (players see it too;
+  // tapping the count opens a viewer list).
+  const [spectators, setSpectators] = useState<Spectator[]>([]);
 
   useEffect(() => {
     initAuth();
@@ -67,10 +77,25 @@ export default function App() {
   useEffect(() => {
     if (authStatus === 'ready' && screen.type === 'lobby') {
       fetchOpenGames();
+      fetchLiveGames();
       startLobbySub();
       return () => stopLobbySub();
     }
-  }, [authStatus, screen.type, fetchOpenGames, startLobbySub, stopLobbySub]);
+  }, [authStatus, screen.type, fetchOpenGames, fetchLiveGames, startLobbySub, stopLobbySub]);
+
+  // Join the per-game presence channel while a game is on screen so the
+  // viewer count is live for players and spectators alike.
+  useEffect(() => {
+    if (!currentGame || !userId) return;
+    if (currentGame.status !== 'active' && currentGame.status !== 'finished') return;
+    const role = isSpectating ? 'spectator' : 'player';
+    const name = profile?.display_name ?? 'anon';
+    const leave = joinGamePresence(currentGame.id, userId, role, name, setSpectators);
+    return () => {
+      leave();
+      setSpectators([]);
+    };
+  }, [currentGame?.id, currentGame?.status, userId, isSpectating, profile?.display_name]);
 
   // Chat: load history + open realtime channel while signed in
   const loadChat = useChatStore((s) => s.loadInitial);
@@ -91,6 +116,22 @@ export default function App() {
 
   useEffect(() => {
     if (!currentGame || !userId) return;
+
+    // Spectators follow a separate route — they're never host/guest, so the
+    // participant flow below (waiting room, army select) must not apply.
+    if (isSpectating) {
+      if (currentGame.status === 'active' || currentGame.status === 'finished') {
+        if (screen.type !== 'spectate') {
+          goTo({ type: 'spectate', gameId: currentGame.id });
+        }
+      } else {
+        // Game vanished or reset under us — back to lobby.
+        exitSpectate();
+        resetToLobby();
+      }
+      return;
+    }
+
     const isHost = currentGame.host_id === userId;
 
     if (currentGame.status === 'waiting') {
@@ -125,7 +166,7 @@ export default function App() {
       setCurrentGame(null);
       resetToLobby();
     }
-  }, [currentGame, userId, screen.type, goTo, setCurrentGame, resetToLobby]);
+  }, [currentGame, userId, isSpectating, screen.type, goTo, setCurrentGame, exitSpectate, resetToLobby]);
 
   // Stay on the title screen until the user taps "PRESS ENTER".
   const [titleDismissed, setTitleDismissed] = useState(false);
@@ -186,6 +227,15 @@ export default function App() {
     await joinGameAction(gameId, userId, profile.display_name);
   };
 
+  const handleSpectate = async (gameId: string) => {
+    try {
+      await spectateAction(gameId);
+    } catch (err: any) {
+      console.error('spectate failed', err);
+      Alert.alert('Could not open game', err?.message ?? String(err));
+    }
+  };
+
   const handleArmySubmit = async (army: ArmyConfig) => {
     if (!currentGame || !userId) return;
     const isHost = currentGame.host_id === userId;
@@ -204,11 +254,13 @@ export default function App() {
         <LobbyScreen
           displayName={profile.display_name}
           openGames={openGames}
+          liveGames={liveGames}
           loading={gamesLoading}
           myUserId={userId}
           onPlayLocal={() => goTo({ type: 'pointCap', mode: 'local' })}
           onCreateOnline={() => goTo({ type: 'pointCap', mode: 'online' })}
           onJoinGame={handleJoinGame}
+          onSpectate={handleSpectate}
           onSignOut={signOutUser}
         />
       )}
@@ -295,6 +347,7 @@ export default function App() {
           guestTimeMs={currentGame.guest_time_ms}
           turnStartedAt={currentGame.turn_started_at}
           isHost={isHost}
+          viewers={spectators}
           onExit={() => {
             setCurrentGame(null);
             resetToLobby();
@@ -328,6 +381,29 @@ export default function App() {
               console.error('timeout resignGame failed:', err?.message ?? err);
             }
           }}
+        />
+      )}
+      {screen.type === 'spectate' && currentGame && currentGame.game_state && (
+        <OnlineGameScreen
+          spectator
+          gameId={currentGame.id}
+          initialState={currentGame.game_state}
+          remoteState={currentGame.game_state}
+          myColor="White"
+          opponentName=""
+          hostName={currentGame.host_name}
+          guestName={currentGame.guest_name ?? undefined}
+          viewers={spectators}
+          hostTimeMs={currentGame.host_time_ms}
+          guestTimeMs={currentGame.guest_time_ms}
+          turnStartedAt={currentGame.turn_started_at}
+          isHost={false}
+          onExit={() => {
+            exitSpectate();
+            resetToLobby();
+          }}
+          onResign={() => {}}
+          onTimeout={() => {}}
         />
       )}
     </SafeAreaView>

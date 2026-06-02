@@ -49,25 +49,31 @@ src/
 │   ├── supabase.ts        — client setup with AsyncStorage persistence
 │   ├── auth.ts            — sign in, get/create profile
 │   ├── games.ts           — create, join, submit army, write state,
+│   │                        list open/active, get one, spectate,
 │   │                        subscribe to lobby/game, restore active
-│   └── chat.ts            — lobby chat: fetch / send / subscribe
+│   ├── chat.ts            — lobby chat: fetch / send / subscribe
+│   ├── presence.ts        — per-game Realtime presence → live viewer list
+│   └── sfx.ts             — chiptune SFX player + effect→clip map
 ├── stores/                — Zustand (no React imports beyond create)
 │   ├── authStore.ts       — auth status, profile, sign in/out
 │   ├── screenStore.ts     — navigation state machine
-│   ├── gamesStore.ts      — open games list, current game, subscriptions
-│   └── chatStore.ts       — chat history, unread counter, subscription
+│   ├── gamesStore.ts      — open + live games, current game, spectating
+│   │                        flag, subscriptions
+│   ├── chatStore.ts       — chat history, unread counter, subscription
+│   └── sfxStore.ts        — master SFX mute toggle
 ├── screens/               — each screen is Header/View/Hook split
 │   ├── Title/             — retro 1980s boot screen with random sprite
 │   ├── SignIn/            — anonymous sign-in
 │   ├── NamePrompt/        — display name on first sign-in
-│   ├── Lobby/             — chat panel + new game buttons + open games list
+│   ├── Lobby/             — chat panel + new game buttons + open + live games
 │   ├── PointCap/          — set point budget
 │   ├── WaitingRoom/       — host waits for guest to join
 │   ├── ArmyBuilder/       — local pass-and-play army selection
 │   ├── Handoff/           — "pass the device" interstitial (local mode)
 │   ├── OnlineArmyBuilder/ — online army selection (writes to DB)
 │   ├── Game/              — local game screen
-│   └── OnlineGame/        — synced online game screen
+│   └── OnlineGame/        — synced online game screen (also serves the
+│                            read-only spectator screen via a `spectator` prop)
 ├── components/
 │   ├── CapturedPieces.tsx — graveyard (currently removed from UI)
 │   ├── ConcedeButton.tsx  — concede with confirm modal
@@ -122,6 +128,7 @@ End-to-end realtime over Supabase. Database is the source of truth.
 - **Per-player clocks** — `host_time_ms` / `guest_time_ms` columns hold each player's time bank; active player's clock ticks down, hitting 0 = timeout loss
 - **Win reasons** — `game_state.status` carries `reason: 'kingCapture' | 'resign' | 'timeout'` so the overlay can show the right banner
 - **Lobby chat** — `chat_messages` table backs a global terminal-style chat panel on the lobby screen; server-side trigger enforces 1 message / 2 sec rate limit
+- **Spectating** — any signed-in user can watch an in-progress game read-only. The lobby's **LIVE GAMES** list (`listActiveGames`) shows active matches with a **VIEW** button; `spectate()` loads the row and flags `isSpectating` **without** joining. The spectator reuses `OnlineGameScreen` with `spectator` set: never their turn, taps only inspect (grey preview, either color), and **no writes ever**. An **EXIT** button (shown only to spectators; players keep Concede) returns to the lobby. Gated by the `games_read_spectate` RLS policy (reads of `active`/`finished` games) — there is no matching write policy, so spectators are read-only by construction. **Live viewer count** comes from a per-game Realtime **presence** channel (`lib/presence.ts`): players and spectators both join, each tracking `{ role, name }`; the `👁 N` indicator (shown to everyone) is tappable and opens a closable modal listing every watcher's name.
 
 Database schema lives in `supabase/schema.sql`. RLS is enabled on all tables.
 
@@ -174,6 +181,7 @@ A Reanimated animation layer sits above the board. Two systems:
 | 7.2 — Retro title/loading screen | done |
 | 7.3 — Global lobby chat | done |
 | 7.4 — Chiptune SFX + haptics | done |
+| 7.5 — Spectator mode (live games, viewer count) | done |
 
 ### Test suite
 
