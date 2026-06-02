@@ -9,7 +9,7 @@ npm start                              # start Expo dev server
 npm run ios                            # build + install on iOS simulator
 npx expo run:ios --device <UDID>       # build + install on physical device
 npm run web                            # start in browser
-npm test                               # run Jest test suite (388 tests)
+npm test                               # run Jest test suite (396 tests)
 ```
 
 TypeScript strict mode enabled. Uses Expo SDK 54 (compatible with Xcode 16.4).
@@ -33,6 +33,8 @@ Three architectural layers:
 1. **Engine** (`src/engine/`) — pure TypeScript, zero React, zero side effects. The game reducer and all piece modules.
 2. **Lib** (`src/lib/`) — pure API functions for external services (Supabase). Zero React.
 3. **Stores** (`src/stores/`) — Zustand stores that wrap lib calls with state. Components subscribe via hooks. NEVER consume Zustand inside library files or piece modules.
+
+App-level orchestration that doesn't belong to a single screen lives in `src/hooks/` (e.g. `useGameRouting`, `useOnlineGameActions`). Like components, these may consume stores; keep any pure logic they need as a standalone testable helper alongside them (e.g. `winnerOf`).
 
 ### Folder structure
 
@@ -60,7 +62,11 @@ src/
 │   ├── gamesStore.ts      — open + live games, current game, spectating
 │   │                        flag, subscriptions
 │   ├── chatStore.ts       — chat history, unread counter, subscription
-│   └── sfxStore.ts        — master SFX mute toggle
+│   └── sfxStore.ts        — UI mute toggle; pushes the flag down to lib/sfx
+├── hooks/                 — App-level orchestration hooks (no screen owns them)
+│   ├── useGameRouting.ts  — drives the screen state-machine off game status
+│   ├── useOnlineGameActions.ts — resign / timeout handlers for OnlineGame
+│   └── winnerOf.ts        — pure: loser color + seat ids → winner color/id
 ├── screens/               — each screen is Header/View/Hook split
 │   ├── Title/             — retro 1980s boot screen with random sprite
 │   ├── SignIn/            — anonymous sign-in
@@ -71,9 +77,12 @@ src/
 │   ├── ArmyBuilder/       — local pass-and-play army selection
 │   ├── Handoff/           — "pass the device" interstitial (local mode)
 │   ├── OnlineArmyBuilder/ — online army selection (writes to DB)
-│   ├── Game/              — local game screen
+│   ├── Game/              — local game screen (+ GameBoardLayout, the shared
+│   │                        board shell reused by OnlineGame; GameView, etc.)
 │   └── OnlineGame/        — synced online game screen (also serves the
-│                            read-only spectator screen via a `spectator` prop)
+│                            read-only spectator screen via a `spectator` prop).
+│                            colorTimes (host→White clock map), OnlineMatchupBar,
+│                            ViewerListModal
 ├── components/
 │   ├── CapturedPieces.tsx — graveyard (currently removed from UI)
 │   ├── ConcedeButton.tsx  — concede with confirm modal
@@ -102,6 +111,8 @@ Every non-trivial screen folder contains:
 
 Simple screens (SignIn, NamePrompt, WaitingRoom, Handoff) skip the split and put everything in `index.tsx`.
 
+**Shared board shell:** the local (`Game`) and online (`OnlineGame`) screens share `GameBoardLayout` (in `screens/Game/`) — a presentational shell holding the status bar, header + both `PlayerTimer`s, the two `SpriteInfoCard` slots, `GameView`, and the REPLAY/SFX bottom row. Screens pass header data, clocks, `selectedPiece`, `GameView` props (`GameViewProps`), plus two slots: `topSlot` (online matchup + viewer count/modal) and `bottomActions` (Concede for players, EXIT for spectators). The layout owns the SFX mute toggle, so neither screen reads `sfxStore` directly. `OnlineGame/index.tsx` is therefore a thin composition root (hook + `colorTimes` + slot wiring); its chrome lives in `OnlineMatchupBar` and `ViewerListModal`.
+
 ### Engine design
 
 All game logic is pure TypeScript — no React, no signals, no mutation.
@@ -125,10 +136,10 @@ End-to-end realtime over Supabase. Database is the source of truth.
 - **Reconnection** — on app start, `restoreMyGame` queries for any non-finished game the user is part of and resumes
 - **Orphan cleanup** — lobby filters games >10min old; host's stale waiting games auto-deleted on app start
 - **Local pass-and-play** — still available as a mode; bypasses Supabase entirely
-- **Per-player clocks** — `host_time_ms` / `guest_time_ms` columns hold each player's time bank; active player's clock ticks down, hitting 0 = timeout loss
-- **Win reasons** — `game_state.status` carries `reason: 'kingCapture' | 'resign' | 'timeout'` so the overlay can show the right banner
+- **Per-player clocks** — `host_time_ms` / `guest_time_ms` columns hold each player's time bank; active player's clock ticks down, hitting 0 = timeout loss. The board never flips, so the pure `colorTimes(hostMs, guestMs)` helper (`screens/OnlineGame/`) maps host→White and guest→Black for every viewer (players and spectators alike)
+- **Win reasons** — `game_state.status` carries `reason: 'kingCapture' | 'resign' | 'timeout'` so the overlay can show the right banner. Resign/timeout are handled by `useOnlineGameActions`, which credits the winner via the pure `winnerOf(loserColor, hostId, guestId)` helper (host is always White)
 - **Lobby chat** — `chat_messages` table backs a global terminal-style chat panel on the lobby screen; server-side trigger enforces 1 message / 2 sec rate limit
-- **Spectating** — any signed-in user can watch an in-progress game read-only. The lobby's **LIVE GAMES** list (`listActiveGames`) shows active matches with a **VIEW** button; `spectate()` loads the row and flags `isSpectating` **without** joining. The spectator reuses `OnlineGameScreen` with `spectator` set: never their turn, taps only inspect (grey preview, either color), and **no writes ever**. An **EXIT** button (shown only to spectators; players keep Concede) returns to the lobby. Gated by the `games_read_spectate` RLS policy (reads of `active`/`finished` games) — there is no matching write policy, so spectators are read-only by construction. **Live viewer count** comes from a per-game Realtime **presence** channel (`lib/presence.ts`): players and spectators both join, each tracking `{ role, name }`; the `👁 N` indicator (shown to everyone) is tappable and opens a closable modal listing every watcher's name.
+- **Spectating** — any signed-in user can watch an in-progress game read-only. The lobby's **LIVE GAMES** list (`listActiveGames`) shows active matches with a **VIEW** button; `spectate()` loads the row and flags `isSpectating` **without** joining. The spectator reuses `OnlineGameScreen` with `spectator` set: never their turn, taps only inspect (grey preview, either color), and **no writes ever**. An **EXIT** button (shown only to spectators; players keep Concede) returns to the lobby. Gated by the `games_read_spectate` RLS policy (reads of `active`/`finished` games) — there is no matching write policy, so spectators are read-only by construction. **Live viewer count** comes from a per-game Realtime **presence** channel (`lib/presence.ts`): players and spectators both join, each tracking `{ role, name }`; the `👁 N` indicator (shown to everyone, rendered by `OnlineMatchupBar`) is tappable and opens `ViewerListModal`, a closable modal listing every watcher's name.
 
 Database schema lives in `supabase/schema.sql`. RLS is enabled on all tables.
 
@@ -160,8 +171,8 @@ A Reanimated animation layer sits above the board. Two systems:
 
 8-bit chiptune SFX + haptic feedback, layered onto the existing effect/animation pipeline with **zero engine changes** (the engine stays pure — audio is a view-side side effect).
 
-- **`src/lib/sfx.ts`** — pure lib (no React). Lazily creates and reuses one `expo-audio` `AudioPlayer` per clip; `playSfx(key)` seeks to 0 and replays. `setAudioModeAsync({ playsInSilentMode: true })` so SFX play through the silent switch. All errors are swallowed so audio never interrupts gameplay. `playEffectSfx(effectType)` maps each ability `Effect.type` → a clip via `EFFECT_SFX` (several share one: king/tower → `laser`, transform/convert → `morph`, raise/revive → `powerup`, swap/portalOut → `teleport`).
-- **`src/stores/sfxStore.ts`** — Zustand master-mute. Read outside React via `getState().muted` in the lib; subscribed in the two Game screens for the **SFX** toggle button (next to ⟳ REPLAY).
+- **`src/lib/sfx.ts`** — pure lib (no React). Lazily creates and reuses one `expo-audio` `AudioPlayer` per clip; `playSfx(key)` seeks to 0 and replays. `setAudioModeAsync({ playsInSilentMode: true })` so SFX play through the silent switch. All errors are swallowed so audio never interrupts gameplay. `playEffectSfx(effectType)` maps each ability `Effect.type` → a clip via `EFFECT_SFX` (several share one: king/tower → `laser`, transform/convert → `morph`, raise/revive → `powerup`, swap/portalOut → `teleport`). **Owns the master-mute flag** — a private `muted` boolean flipped via `setSfxMuted()`; `playSfx` early-returns when muted, so the lib stays self-contained (no Zustand import).
+- **`src/stores/sfxStore.ts`** — Zustand UI mute toggle. `toggleMute` flips the store's mirror and pushes the new value down via `setSfxMuted` (dependency points stores→lib, the allowed direction). Subscribed by `GameBoardLayout` for the **SFX** toggle button (next to ⟳ REPLAY).
 - **Wiring (`GameView.tsx`)**: `pushEffect` calls `playEffectSfx` (fires for live moves **and** replay steps) + a heavy haptic on `detonate`. The capture ID-diff plays the generic `capture` thud + light haptic, but **only when `lastEffect` is null** — ability captures already get their own sound, so this avoids doubling up.
 - **`assets/sfx/*.wav`** — 15 clips generated offline by `scripts/gen-sfx.js` (a standalone Node chiptune synth; not run at build time). Regenerate with `node scripts/gen-sfx.js`.
 - **Native modules** — `expo-audio` + `expo-haptics` require a dev build (`npx expo run:ios`), not just a JS reload.
@@ -185,7 +196,7 @@ A Reanimated animation layer sits above the board. Two systems:
 
 ### Test suite
 
-388 tests across 38 suites — pure engine logic + data completeness checks, no React rendering tests yet.
+396 tests across 40 suites — pure engine logic + data completeness checks, plus pure helpers extracted from the screens/hooks layer (`colorTimes`, `winnerOf`). No React rendering tests yet.
 
 ## Game reference
 
