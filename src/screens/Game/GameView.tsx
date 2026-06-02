@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Pressable, Text, StyleSheet, useWindowDimensions } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import type { Piece, Square, Highlight, GameStatus, Effect } from '@/types/game';
 import { BOARD, HIGHLIGHT, COLORS, FONT } from '@/constants/theme';
+import { playEffectSfx, playSfx } from '@/lib/sfx';
 import { AnimatedPiece, seedLastPositions } from './AnimatedPiece';
 import { DyingPiece } from './DyingPiece';
 import { EffectRenderer } from './EffectRenderer';
@@ -70,6 +72,13 @@ export function GameView({ pieces, selectedSquare, selectedCanActivate, highligh
   const [dying, setDying] = useState<DyingEntry[]>([]);
   useEffect(() => {
     if (captureDiff.length > 0) {
+      // A plain move-capture has no ability Effect; play the generic capture
+      // thud. Ability captures (detonate, beam, etc.) already get their own
+      // sound via pushEffect, so skip here to avoid doubling up.
+      if (!lastEffect) {
+        playSfx('capture');
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+      }
       const ts = Date.now();
       setDying((curr) => [
         ...curr,
@@ -77,6 +86,7 @@ export function GameView({ pieces, selectedSquare, selectedCanActivate, highligh
       ]);
     }
     prevBoardRef.current = board;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [board, captureDiff]);
 
   const removeDying = (dyingId: string) => {
@@ -87,6 +97,11 @@ export function GameView({ pieces, selectedSquare, selectedCanActivate, highligh
   // one queue entry. Each EffectRenderer's onDone removes its entry.
   const [fxQueue, setFxQueue] = useState<EffectEntry[]>([]);
   const pushEffect = useCallback((effect: Effect) => {
+    // Fires for live moves AND replay steps, so both get sound.
+    playEffectSfx(effect.type);
+    if (effect.type === 'detonate') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {});
+    }
     setFxQueue((curr) => [
       ...curr,
       { effect, fxId: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}` },

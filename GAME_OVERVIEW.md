@@ -256,6 +256,15 @@ A **⟳ Replay** button (Game screen, beside Concede) re-plays the previous turn
 - A `replayFrame` overrides the rendered board only during playback; the real `GameState` is untouched. Disabled until the first move; cleared on New Game.
 - Wired in **both** the local and online Game screens via a shared `useReplayRecorder(state)` hook. Online works because every state transition is recorded — the active player's moves (reducer) and the opponent's moves (each sub-move is written to the DB, so it arrives as its own state update via Realtime). No extra sync needed.
 
+### 4. Sound & haptics
+
+8-bit chiptune SFX (`expo-audio`) and haptic feedback (`expo-haptics`), bolted onto the systems above with **no engine changes** — audio is a pure view-side side effect.
+
+- `src/lib/sfx.ts` lazily creates one reusable `AudioPlayer` per clip; `playSfx(key)` seeks to 0 and replays, swallowing all errors so audio never interrupts play. `playEffectSfx(type)` maps each `Effect.type` → a clip (several share one — king/tower → `laser`, transform/convert → `morph`, raise/revive → `powerup`, swap/portalOut → `teleport`). `playsInSilentMode: true` so SFX play through the ringer switch.
+- In `GameView`, `pushEffect` plays the ability SFX (so **replay re-plays the audio too**) plus a heavy haptic on `detonate`. The capture ID-diff plays a generic `capture` thud + light haptic, **only when `lastEffect` is null**, so ability captures don't double up.
+- Master mute lives in `src/stores/sfxStore.ts` (read via `getState()` in the lib, subscribed by the **SFX** toggle button beside ⟳ Replay on both Game screens).
+- The 15 `assets/sfx/*.wav` clips are generated offline by `scripts/gen-sfx.js` (a standalone Node chiptune synth — not part of the build); regenerate with `node scripts/gen-sfx.js`.
+
 ---
 
 ## Multiplayer

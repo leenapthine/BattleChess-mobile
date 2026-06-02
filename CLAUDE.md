@@ -22,6 +22,7 @@ TypeScript strict mode enabled. Uses Expo SDK 54 (compatible with Xcode 16.4).
 - **useReducer** — game engine state (kept local because the reducer is pure)
 - **Supabase** — Postgres + Realtime for multiplayer (anonymous auth for now)
 - **Space Mono** — monospace font via `@expo-google-fonts/space-mono`
+- **expo-audio / expo-haptics** — chiptune SFX + haptic feedback (native modules; require a dev build)
 
 Bundle ID: `com.leenapthine.battlechess`
 
@@ -148,6 +149,16 @@ A Reanimated animation layer sits above the board. Two systems:
 - **Ability effects**: the reducer writes a typed `Effect` to `GameState.lastEffect` (cleared to `null` on every other action); `EffectRenderer` routes it to a primitive that calls `onDone` to clear the queue. All 17 `Effect` types are emitted/rendered. Every primitive is **hand-rolled pixel art** (grids of square `View`s — no SVG/Skia, so no native dep): `LightningBolt` (WizardKing/WizardTower), `EyeBeam` (Beholder), `FireBurst` (YoungWiz), `BoulderThrow` (BoulderThrower), `PixelExplosion` (NecroPawn), `LaunchProjectile` (DeadLauncher — loaded pawn sprite, spinning), `PixelBurst` (versatile particle poof — transform/convert/raise/revive/dominate/swap/portalOut/howlerAbsorb), `StunPulse` (GhostKnight), `StonePulse` (Familiar). **Invariant:** every `EffectRenderer` branch must eventually call `onDone` or the queue stalls (e.g. the `stun` case guards an empty `affected` array). See GAME_OVERVIEW.md "Visual Effects" for the full effect→primitive map.
 - **Last-move replay**: a ⟳ Replay button (local **and** online Game screens) re-plays the previous turn. A shared `useReplayRecorder(state)` hook records each turn as a sequence of board frames (one per sub-move, so multi-step turns replay in full) — driven by `state` transitions, so it works for both local reducer moves and online moves applied via remote sync. `GameView` re-stages the frames through the existing animation machinery (seeding `AnimatedPiece` positions so there's no rewind-slide). Real `GameState` is untouched.
 
+### Sound & haptics (`src/lib/sfx.ts`, `src/stores/sfxStore.ts`)
+
+8-bit chiptune SFX + haptic feedback, layered onto the existing effect/animation pipeline with **zero engine changes** (the engine stays pure — audio is a view-side side effect).
+
+- **`src/lib/sfx.ts`** — pure lib (no React). Lazily creates and reuses one `expo-audio` `AudioPlayer` per clip; `playSfx(key)` seeks to 0 and replays. `setAudioModeAsync({ playsInSilentMode: true })` so SFX play through the silent switch. All errors are swallowed so audio never interrupts gameplay. `playEffectSfx(effectType)` maps each ability `Effect.type` → a clip via `EFFECT_SFX` (several share one: king/tower → `laser`, transform/convert → `morph`, raise/revive → `powerup`, swap/portalOut → `teleport`).
+- **`src/stores/sfxStore.ts`** — Zustand master-mute. Read outside React via `getState().muted` in the lib; subscribed in the two Game screens for the **SFX** toggle button (next to ⟳ REPLAY).
+- **Wiring (`GameView.tsx`)**: `pushEffect` calls `playEffectSfx` (fires for live moves **and** replay steps) + a heavy haptic on `detonate`. The capture ID-diff plays the generic `capture` thud + light haptic, but **only when `lastEffect` is null** — ability captures already get their own sound, so this avoids doubling up.
+- **`assets/sfx/*.wav`** — 15 clips generated offline by `scripts/gen-sfx.js` (a standalone Node chiptune synth; not run at build time). Regenerate with `node scripts/gen-sfx.js`.
+- **Native modules** — `expo-audio` + `expo-haptics` require a dev build (`npx expo run:ios`), not just a JS reload.
+
 ## Phase status
 
 | Phase | Status |
@@ -162,6 +173,7 @@ A Reanimated animation layer sits above the board. Two systems:
 | 7.1 — Concede / timeouts / win reasons | done |
 | 7.2 — Retro title/loading screen | done |
 | 7.3 — Global lobby chat | done |
+| 7.4 — Chiptune SFX + haptics | done |
 
 ### Test suite
 

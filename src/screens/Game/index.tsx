@@ -7,6 +7,7 @@ import { GameView } from './GameView';
 import { SpriteInfoCard } from '@/components/SpriteInfoCard';
 import { ConcedeButton } from '@/components/ConcedeButton';
 import { PlayerTimer } from '@/components/PlayerTimer';
+import { useSfxStore } from '@/stores/sfxStore';
 import { COLORS, FONT } from '@/constants/theme';
 
 type Props = {
@@ -39,6 +40,8 @@ export function GameScreen({ p1Army, p2Army, timePerTurnSeconds, onMainMenu }: P
     onResign,
     onTimeout,
   } = useGame({ p1Army, p2Army, timePerTurnSeconds });
+
+  const { muted, toggleMute } = useSfxStore();
 
   const cardHeight = 90;
 
@@ -99,6 +102,12 @@ export function GameScreen({ p1Army, p2Army, timePerTurnSeconds, onMainMenu }: P
           disabled={!canReplay}
         >
           <Text style={styles.replayText}>⟳ REPLAY</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.replayBtn, muted && styles.replayDisabled]}
+          onPress={toggleMute}
+        >
+          <Text style={styles.replayText}>SFX</Text>
         </Pressable>
         <ConcedeButton onConcede={onResign} disabled={status.type === 'won'} />
       </View>

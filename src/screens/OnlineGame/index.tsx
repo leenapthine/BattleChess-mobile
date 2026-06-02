@@ -6,6 +6,7 @@ import { GameView } from '@/screens/Game/GameView';
 import { SpriteInfoCard } from '@/components/SpriteInfoCard';
 import { ConcedeButton } from '@/components/ConcedeButton';
 import { PlayerTimer } from '@/components/PlayerTimer';
+import { useSfxStore } from '@/stores/sfxStore';
 import { useOnlineGame } from './useOnlineGame';
 import { COLORS, FONT } from '@/constants/theme';
 
@@ -39,6 +40,8 @@ export function OnlineGameScreen({
     gameId, initialState, remoteState, myColor,
     hostTimeMs, guestTimeMs, turnStartedAt, isHost,
   });
+
+  const { muted, toggleMute } = useSfxStore();
 
   const whiteTimeMs = isHost ? hostTimeMs : guestTimeMs;
   const blackTimeMs = isHost ? guestTimeMs : hostTimeMs;
@@ -103,6 +106,12 @@ export function OnlineGameScreen({
           disabled={!canReplay}
         >
           <Text style={styles.replayText}>⟳ REPLAY</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.replayBtn, muted && styles.replayDisabled]}
+          onPress={toggleMute}
+        >
+          <Text style={styles.replayText}>SFX</Text>
         </Pressable>
         <ConcedeButton onConcede={onResign} disabled={status.type === 'won'} />
       </View>
