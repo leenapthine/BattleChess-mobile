@@ -10,6 +10,7 @@ import { ConcedeButton } from '@/components/ConcedeButton';
 import { PlayerTimer } from '@/components/PlayerTimer';
 import { useSfxStore } from '@/stores/sfxStore';
 import { useOnlineGame } from './useOnlineGame';
+import { colorTimes } from './colorTimes';
 import { COLORS, FONT } from '@/constants/theme';
 
 const CARD_HEIGHT = 90;
@@ -55,10 +56,10 @@ export function OnlineGameScreen({
 
   const { muted, toggleMute } = useSfxStore();
 
-  // White is always the host, Black the guest. A spectator has no seat, so it
-  // maps by true color; players keep their existing per-seat mapping.
-  const whiteTimeMs = spectator ? hostTimeMs : (isHost ? hostTimeMs : guestTimeMs);
-  const blackTimeMs = spectator ? guestTimeMs : (isHost ? guestTimeMs : hostTimeMs);
+  // White is always the host, Black the guest — for players and spectators
+  // alike, since the board never flips. (See colorTimes; the old per-seat
+  // branching swapped the clocks for the guest.)
+  const { whiteTimeMs, blackTimeMs } = colorTimes(hostTimeMs, guestTimeMs);
 
   return (
     <View style={styles.container}>
