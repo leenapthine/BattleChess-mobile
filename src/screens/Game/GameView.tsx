@@ -26,7 +26,7 @@ export type ReplayRequest = {
   nonce: number;
 };
 
-type Props = {
+export type GameViewProps = {
   pieces: Piece[];
   selectedSquare: Square | null;
   selectedCanActivate: boolean;
@@ -39,7 +39,7 @@ type Props = {
   onMainMenu?: () => void;
 };
 
-export function GameView({ pieces, selectedSquare, selectedCanActivate, highlights, status, lastEffect, replayRequest, onSquarePress, onNewGame, onMainMenu }: Props) {
+export function GameView({ pieces, selectedSquare, selectedCanActivate, highlights, status, lastEffect, replayRequest, onSquarePress, onNewGame, onMainMenu }: GameViewProps) {
   const { width } = useWindowDimensions();
   const boardSize = Math.min(width - 16, 400);
   const tileSize = boardSize / 8;
