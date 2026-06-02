@@ -1,13 +1,20 @@
 import { create } from 'zustand';
+import { setSfxMuted } from '@/lib/sfx';
 
 type SfxState = {
   muted: boolean;
   toggleMute: () => void;
 };
 
-// Master mute for sound effects. Read outside React via getState() in the
-// sfx manager; subscribed in the UI for the toggle button.
+// UI-facing mute toggle. The sfx lib owns the actual flag (so it stays
+// React-free); this store mirrors it for the button and pushes changes down
+// via setSfxMuted. Subscribed in the two Game screens for the SFX button.
 export const useSfxStore = create<SfxState>((set) => ({
   muted: false,
-  toggleMute: () => set((s) => ({ muted: !s.muted })),
+  toggleMute: () =>
+    set((s) => {
+      const muted = !s.muted;
+      setSfxMuted(muted);
+      return { muted };
+    }),
 }));
