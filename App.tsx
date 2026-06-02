@@ -17,9 +17,10 @@ import { useAuthStore } from '@/stores/authStore';
 import { useScreenStore } from '@/stores/screenStore';
 import { useGamesStore } from '@/stores/gamesStore';
 import { useChatStore } from '@/stores/chatStore';
-import { submitArmy, startGame, endOnlineGame } from '@/lib/games';
+import { submitArmy } from '@/lib/games';
 import { joinGamePresence, type Spectator } from '@/lib/presence';
-import { createInitialState } from '@/engine/initialBoard';
+import { useGameRouting } from '@/hooks/useGameRouting';
+import { useOnlineGameActions } from '@/hooks/useOnlineGameActions';
 import { COLORS } from '@/constants/theme';
 
 export default function App() {
@@ -114,59 +115,11 @@ export default function App() {
     return () => stopGameSub();
   }, [currentGame?.id, startGameSub, stopGameSub]);
 
-  useEffect(() => {
-    if (!currentGame || !userId) return;
+  // Route the screen state-machine off the current online game's status.
+  useGameRouting();
 
-    // Spectators follow a separate route — they're never host/guest, so the
-    // participant flow below (waiting room, army select) must not apply.
-    if (isSpectating) {
-      if (currentGame.status === 'active' || currentGame.status === 'finished') {
-        if (screen.type !== 'spectate') {
-          goTo({ type: 'spectate', gameId: currentGame.id });
-        }
-      } else {
-        // Game vanished or reset under us — back to lobby.
-        exitSpectate();
-        resetToLobby();
-      }
-      return;
-    }
-
-    const isHost = currentGame.host_id === userId;
-
-    if (currentGame.status === 'waiting') {
-      if (screen.type !== 'waitingRoom') {
-        goTo({ type: 'waitingRoom', gameId: currentGame.id });
-      }
-      return;
-    }
-
-    if (currentGame.status === 'army_select') {
-      if (screen.type !== 'onlineArmyBuilder') {
-        goTo({ type: 'onlineArmyBuilder', gameId: currentGame.id });
-      }
-      if (isHost && currentGame.host_army && currentGame.guest_army && !currentGame.game_state) {
-        const initial = createInitialState(currentGame.host_army, currentGame.guest_army);
-        startGame(currentGame.id, initial, currentGame.time_per_turn_seconds).catch(err => console.error('startGame failed', err));
-      }
-      return;
-    }
-
-    if (currentGame.status === 'active' || currentGame.status === 'finished') {
-      // Both 'active' and 'finished' show the OnlineGameScreen so the win
-      // overlay (driven by game_state.status) is visible. The user clicks
-      // Main Menu to return to lobby.
-      if (screen.type !== 'onlineGame') {
-        goTo({ type: 'onlineGame', gameId: currentGame.id });
-      }
-      return;
-    }
-
-    if (currentGame.status === 'abandoned') {
-      setCurrentGame(null);
-      resetToLobby();
-    }
-  }, [currentGame, userId, isSpectating, screen.type, goTo, setCurrentGame, exitSpectate, resetToLobby]);
+  // Resign / timeout handlers for the online game screen.
+  const { onResign, onTimeout } = useOnlineGameActions(currentGame, userId);
 
   // Stay on the title screen until the user taps "PRESS ENTER".
   const [titleDismissed, setTitleDismissed] = useState(false);
@@ -352,35 +305,8 @@ export default function App() {
             setCurrentGame(null);
             resetToLobby();
           }}
-          onResign={async () => {
-            if (!currentGame || !userId || !currentGame.game_state) return;
-            if (currentGame.status !== 'active') return;
-            // The player who taps Concede loses. Host is White, guest is Black.
-            const myColorComputed: 'White' | 'Black' = isHost ? 'White' : 'Black';
-            const winnerColor: 'White' | 'Black' = myColorComputed === 'White' ? 'Black' : 'White';
-            const winnerId = winnerColor === 'White'
-              ? currentGame.host_id
-              : currentGame.guest_id;
-            if (!winnerId) return;
-            try {
-              await endOnlineGame(currentGame.id, currentGame.game_state, winnerColor, winnerId, 'resign');
-            } catch (err: any) {
-              console.error('resignGame failed:', err?.message ?? err);
-            }
-          }}
-          onTimeout={async (loserColor) => {
-            if (!currentGame || !currentGame.game_state) return;
-            if (currentGame.status !== 'active') return;
-            const winnerColor: 'White' | 'Black' = loserColor === 'White' ? 'Black' : 'White';
-            // Host is White, guest is Black.
-            const winnerId = winnerColor === 'White' ? currentGame.host_id : currentGame.guest_id;
-            if (!winnerId) return;
-            try {
-              await endOnlineGame(currentGame.id, currentGame.game_state, winnerColor, winnerId, 'timeout');
-            } catch (err: any) {
-              console.error('timeout resignGame failed:', err?.message ?? err);
-            }
-          }}
+          onResign={onResign}
+          onTimeout={onTimeout}
         />
       )}
       {screen.type === 'spectate' && currentGame && currentGame.game_state && (
