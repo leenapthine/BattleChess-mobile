@@ -1,6 +1,6 @@
 import type { GameState, GameAction, Color } from '@/types/game';
 import { generateTurns } from './generateTurns';
-import { evaluate, terminalWinner, WIN_SCORE } from './evaluate';
+import { evaluate, materialScore, terminalWinner, WIN_SCORE } from './evaluate';
 
 export type Difficulty = {
   // How many plies (half-moves) to search. 1 = greedy (grab the best
@@ -26,7 +26,7 @@ export function chooseTurn(state: GameState, difficulty: Difficulty): GameAction
   // Order by immediate eval so alpha-beta prunes hard, and so depth-1 (greedy)
   // is effectively a sorted pick.
   const scored = turns
-    .map((t) => ({ turn: t, score: evaluate(t.result, mover) }))
+    .map((t) => ({ turn: t, score: materialScore(t.result, mover) }))
     .sort((a, b) => b.score - a.score);
 
   let bestScore = -Infinity;
@@ -68,9 +68,10 @@ function negamax(state: GameState, depth: number, alpha: number, beta: number, _
     return -WIN_SCORE;
   }
 
-  // Order children by a quick eval for better pruning.
+  // Order children by a cheap material score for better pruning (the full
+  // positional eval runs only at the leaves above).
   const ordered = turns
-    .map((t) => ({ t, s: evaluate(t.result, state.currentTurn) }))
+    .map((t) => ({ t, s: materialScore(t.result, state.currentTurn) }))
     .sort((a, b) => b.s - a.s);
 
   let value = -Infinity;
