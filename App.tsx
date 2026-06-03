@@ -2,8 +2,7 @@ import { SafeAreaView, StyleSheet, ActivityIndicator, View, Alert } from 'react-
 import { useEffect, useState } from 'react';
 import { useFonts, SpaceMono_400Regular, SpaceMono_700Bold } from '@expo-google-fonts/space-mono';
 import type { ArmyConfig } from '@/types/army';
-import { createDefaultArmy } from '@/types/army';
-import { GUILDS } from '@/data/upgradeCosts';
+import { buildAIArmy } from '@/ai/buildArmy';
 import { DIFFICULTIES } from '@/ai/chooseTurn';
 import { TitleScreen } from '@/screens/Title';
 import { LobbyScreen } from '@/screens/Lobby';
@@ -244,9 +243,9 @@ export default function App() {
               ? goTo({
                   type: 'solo',
                   humanArmy: army,
-                  // Prototype: the AI fields a plain (un-upgraded) army of a
-                  // random guild, so it fits under any point cap.
-                  aiArmy: createDefaultArmy(GUILDS[Math.floor(Math.random() * GUILDS.length)]),
+                  // The AI builds after the human: mirror the guild, pick a
+                  // random archetype, and spend the same point budget.
+                  aiArmy: buildAIArmy(army, screen.pointCap),
                   difficulty: DIFFICULTIES.normal,
                 })
               : goTo({
