@@ -19,6 +19,14 @@ export function getLoadTargets(piece: Piece, pieces: Piece[]): Highlight[] {
   }).map(sq => ({ ...sq, color: 'capture' as const }));
 }
 
+// Generic ability-target hook, read by the AI eval to value a loaded launcher's
+// threat (only meaningful once a pawn is loaded). The reducer drives loading/
+// firing through getLoadTargets/getLaunchTargets directly, and gameReducer skips
+// getAbilityTargets for self-click pieces, so exposing this is inert to gameplay.
+export function getAbilityTargets(piece: Piece, pieces: Piece[]): Highlight[] {
+  return piece.pawnLoaded ? getLaunchTargets(piece, pieces) : [];
+}
+
 export function getLaunchTargets(piece: Piece, pieces: Piece[]): Highlight[] {
   const targets: Highlight[] = [];
 
