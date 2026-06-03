@@ -2,6 +2,9 @@ import { SafeAreaView, StyleSheet, ActivityIndicator, View, Alert } from 'react-
 import { useEffect, useState } from 'react';
 import { useFonts, SpaceMono_400Regular, SpaceMono_700Bold } from '@expo-google-fonts/space-mono';
 import type { ArmyConfig } from '@/types/army';
+import { createDefaultArmy } from '@/types/army';
+import { GUILDS } from '@/data/upgradeCosts';
+import { DIFFICULTIES } from '@/ai/chooseTurn';
 import { TitleScreen } from '@/screens/Title';
 import { LobbyScreen } from '@/screens/Lobby';
 import { PointCapScreen } from '@/screens/PointCap';
@@ -9,6 +12,7 @@ import { WaitingRoomScreen } from '@/screens/WaitingRoom';
 import { ArmyBuilderScreen } from '@/screens/ArmyBuilder';
 import { HandoffScreen } from '@/screens/Handoff';
 import { GameScreen } from '@/screens/Game';
+import { SoloGameScreen } from '@/screens/SoloGame';
 import { OnlineArmyBuilderScreen } from '@/screens/OnlineArmyBuilder';
 import { OnlineGameScreen } from '@/screens/OnlineGame';
 import { SignInScreen } from '@/screens/SignIn';
@@ -162,8 +166,8 @@ export default function App() {
 
   const handlePointCapSubmit = async (pointCap: number, timePerTurnSeconds: number | null) => {
     if (screen.type !== 'pointCap') return;
-    if (screen.mode === 'local') {
-      goTo({ type: 'armyBuilder', player: 1, pointCap, timePerTurnSeconds });
+    if (screen.mode === 'local' || screen.mode === 'solo') {
+      goTo({ type: 'armyBuilder', player: 1, pointCap, timePerTurnSeconds, vsAI: screen.mode === 'solo' });
     } else {
       if (!userId || !profile) return;
       try {
@@ -211,6 +215,7 @@ export default function App() {
           loading={gamesLoading}
           myUserId={userId}
           onPlayLocal={() => goTo({ type: 'pointCap', mode: 'local' })}
+          onPlayVsAI={() => goTo({ type: 'pointCap', mode: 'solo' })}
           onCreateOnline={() => goTo({ type: 'pointCap', mode: 'online' })}
           onJoinGame={handleJoinGame}
           onSpectate={handleSpectate}
@@ -235,12 +240,21 @@ export default function App() {
           player={1}
           pointCap={screen.pointCap}
           onConfirm={(army) =>
-            goTo({
-              type: 'handoff',
-              pointCap: screen.pointCap,
-              timePerTurnSeconds: screen.timePerTurnSeconds,
-              player1Army: army,
-            })
+            screen.vsAI
+              ? goTo({
+                  type: 'solo',
+                  humanArmy: army,
+                  // Prototype: the AI fields a plain (un-upgraded) army of a
+                  // random guild, so it fits under any point cap.
+                  aiArmy: createDefaultArmy(GUILDS[Math.floor(Math.random() * GUILDS.length)]),
+                  difficulty: DIFFICULTIES.normal,
+                })
+              : goTo({
+                  type: 'handoff',
+                  pointCap: screen.pointCap,
+                  timePerTurnSeconds: screen.timePerTurnSeconds,
+                  player1Army: army,
+                })
           }
         />
       )}
@@ -276,6 +290,14 @@ export default function App() {
           p1Army={screen.player1Army}
           p2Army={screen.player2Army}
           timePerTurnSeconds={screen.timePerTurnSeconds}
+          onMainMenu={resetToLobby}
+        />
+      )}
+      {screen.type === 'solo' && (
+        <SoloGameScreen
+          humanArmy={screen.humanArmy}
+          aiArmy={screen.aiArmy}
+          difficulty={screen.difficulty}
           onMainMenu={resetToLobby}
         />
       )}

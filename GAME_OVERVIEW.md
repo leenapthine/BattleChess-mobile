@@ -912,4 +912,4 @@ All bugs from the original codebase have been addressed during the engine port.
 
 ---
 
-*Last updated: 2026-06-02 — Phases 1–7 complete + full pixel-art visual effects layer (Reanimated): all 17 ability effects emitted/rendered, plus per-move glide/death-fade and projectile impact dust. Post-spectator refactor: shared `GameBoardLayout`, lib-owned SFX mute, App-level hooks (`useGameRouting`/`useOnlineGameActions`) + pure helpers (`colorTimes`/`winnerOf`). 396 tests across 40 suites.*
+*Last updated: 2026-06-02 — Phases 1–7 complete + full pixel-art visual effects layer (Reanimated): all 17 ability effects emitted/rendered, plus per-move glide/death-fade and projectile impact dust. Post-spectator refactor: shared `GameBoardLayout`, lib-owned SFX mute, App-level hooks (`useGameRouting`/`useOnlineGameActions`) + pure helpers (`colorTimes`/`winnerOf`). Single-player vs AI prototype: pure move generator (`src/ai/generateTurns`) + negamax/alpha-beta opponent, wired into a SoloGame screen. 402 tests across 42 suites.*

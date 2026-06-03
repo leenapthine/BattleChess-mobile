@@ -9,7 +9,7 @@ npm start                              # start Expo dev server
 npm run ios                            # build + install on iOS simulator
 npx expo run:ios --device <UDID>       # build + install on physical device
 npm run web                            # start in browser
-npm test                               # run Jest test suite (396 tests)
+npm test                               # run Jest test suite (402 tests)
 ```
 
 TypeScript strict mode enabled. Uses Expo SDK 54 (compatible with Xcode 16.4).
@@ -47,6 +47,12 @@ src/
 │   ├── pieces/            — one file per piece type
 │   └── helpers/           — moveHelpers, captureHandler, captureDispatch,
 │                            turnManager, classifyAction, abilityHandlers
+├── ai/                    — single-player opponent (pure, no React)
+│   ├── generateTurns.ts   — every legal full turn, by driving the real
+│   │                        reducer via classifyAction (reuses all rules)
+│   ├── evaluate.ts        — material-based position score
+│   ├── pieceValues.ts     — per-piece worth (role values + upgrade cost)
+│   └── chooseTurn.ts      — negamax + alpha-beta; returns the tap-sequence
 ├── lib/                   — pure API (no React)
 │   ├── supabase.ts        — client setup with AsyncStorage persistence
 │   ├── auth.ts            — sign in, get/create profile
@@ -78,7 +84,8 @@ src/
 │   ├── Handoff/           — "pass the device" interstitial (local mode)
 │   ├── OnlineArmyBuilder/ — online army selection (writes to DB)
 │   ├── Game/              — local game screen (+ GameBoardLayout, the shared
-│   │                        board shell reused by OnlineGame; GameView, etc.)
+│   │                        board shell reused by OnlineGame/SoloGame; GameView)
+│   ├── SoloGame/          — single-player vs AI (human = White, bot = Black)
 │   └── OnlineGame/        — synced online game screen (also serves the
 │                            read-only spectator screen via a `spectator` prop).
 │                            colorTimes (host→White clock map), OnlineMatchupBar,
@@ -120,6 +127,15 @@ All game logic is pure TypeScript — no React, no signals, no mutation.
 - State transitions: `gameReducer(state, action) → GameState`
 - Multi-step abilities tracked by `AbilityMode` discriminated union
 - Piece-specific capture dispatch in `captureDispatch.ts` (WizardTower stays put, HellKing converts, Prowler second move, etc.)
+
+### Single-player AI (`src/ai/`)
+
+The computer opponent is pure TypeScript that leans entirely on the existing engine — it never re-implements a rule.
+
+- **`generateTurns(state)`** is the keystone: it enumerates every legal *full turn* for the side to move by exploring sequences of square-taps through the real engine (`classifyAction` + `gameReducer`), exactly as a human tapping the board would. Each turn comes back as the `GameAction[]` to dispatch plus the resulting `GameState`. Multi-step abilities (self-click → target, etc.) fall out naturally; the search is bounded by a tap cap. **No checkmate detection is needed** — the game ends on king capture, so terminal = king gone.
+- **`evaluate(state, color)`** is a material score (per-piece `pieceValue`, derived from the basic role values + army-builder upgrade costs) with a decisive bonus for a won game. Positional terms are the obvious next addition.
+- **`chooseTurn(state, difficulty)`** runs negamax + alpha-beta over `generateTurns` and returns the chosen tap-sequence. `depth: 1` = greedy; `depth: 2` looks one reply ahead (`DIFFICULTIES.easy` / `.normal`).
+- **`SoloGame`** wires it up: the human plays White through the reducer as usual; `useSoloGame` watches for Black's turn, calls `chooseTurn`, and dispatches the returned actions one at a time (with delays) so each sub-move animates. The AI currently fields a plain un-upgraded army of a random guild.
 
 ### File size
 
@@ -193,10 +209,11 @@ A Reanimated animation layer sits above the board. Two systems:
 | 7.3 — Global lobby chat | done |
 | 7.4 — Chiptune SFX + haptics | done |
 | 7.5 — Spectator mode (live games, viewer count) | done |
+| 7.6 — Single-player vs AI (move-gen + negamax) | prototype |
 
 ### Test suite
 
-396 tests across 40 suites — pure engine logic + data completeness checks, plus pure helpers extracted from the screens/hooks layer (`colorTimes`, `winnerOf`). No React rendering tests yet.
+402 tests across 42 suites — pure engine logic + data completeness checks, pure helpers from the screens/hooks layer (`colorTimes`, `winnerOf`), and the AI core (`generateTurns`, `chooseTurn`). No React rendering tests yet.
 
 ## Game reference
 
