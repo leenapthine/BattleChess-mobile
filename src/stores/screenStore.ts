@@ -10,6 +10,7 @@ export type AppScreen =
   | { type: 'handoff'; pointCap: number; timePerTurnSeconds: number | null; player1Army: ArmyConfig }
   | { type: 'game'; player1Army: ArmyConfig; player2Army: ArmyConfig; timePerTurnSeconds: number | null }
   | { type: 'solo'; humanArmy: ArmyConfig; aiArmy: ArmyConfig; difficulty: Difficulty }
+  | { type: 'watch'; whiteArmy: ArmyConfig; blackArmy: ArmyConfig; difficulty: Difficulty }
   | { type: 'onlineArmyBuilder'; gameId: string }
   | { type: 'onlineGame'; gameId: string }
   | { type: 'spectate'; gameId: string };

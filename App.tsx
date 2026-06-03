@@ -2,7 +2,7 @@ import { SafeAreaView, StyleSheet, ActivityIndicator, View, Alert } from 'react-
 import { useEffect, useState } from 'react';
 import { useFonts, SpaceMono_400Regular, SpaceMono_700Bold } from '@expo-google-fonts/space-mono';
 import type { ArmyConfig } from '@/types/army';
-import { buildAIArmy } from '@/ai/buildArmy';
+import { buildAIArmy, randomAIArmy } from '@/ai/buildArmy';
 import { DIFFICULTIES } from '@/ai/chooseTurn';
 import { TitleScreen } from '@/screens/Title';
 import { LobbyScreen } from '@/screens/Lobby';
@@ -12,6 +12,7 @@ import { ArmyBuilderScreen } from '@/screens/ArmyBuilder';
 import { HandoffScreen } from '@/screens/Handoff';
 import { GameScreen } from '@/screens/Game';
 import { SoloGameScreen } from '@/screens/SoloGame';
+import { WatchGameScreen } from '@/screens/WatchGame';
 import { OnlineArmyBuilderScreen } from '@/screens/OnlineArmyBuilder';
 import { OnlineGameScreen } from '@/screens/OnlineGame';
 import { SignInScreen } from '@/screens/SignIn';
@@ -215,6 +216,14 @@ export default function App() {
           myUserId={userId}
           onPlayLocal={() => goTo({ type: 'pointCap', mode: 'local' })}
           onPlayVsAI={() => goTo({ type: 'pointCap', mode: 'solo' })}
+          onWatchAI={() =>
+            goTo({
+              type: 'watch',
+              whiteArmy: randomAIArmy(60),
+              blackArmy: randomAIArmy(60),
+              difficulty: DIFFICULTIES.normal,
+            })
+          }
           onCreateOnline={() => goTo({ type: 'pointCap', mode: 'online' })}
           onJoinGame={handleJoinGame}
           onSpectate={handleSpectate}
@@ -296,6 +305,14 @@ export default function App() {
         <SoloGameScreen
           humanArmy={screen.humanArmy}
           aiArmy={screen.aiArmy}
+          difficulty={screen.difficulty}
+          onMainMenu={resetToLobby}
+        />
+      )}
+      {screen.type === 'watch' && (
+        <WatchGameScreen
+          whiteArmy={screen.whiteArmy}
+          blackArmy={screen.blackArmy}
           difficulty={screen.difficulty}
           onMainMenu={resetToLobby}
         />

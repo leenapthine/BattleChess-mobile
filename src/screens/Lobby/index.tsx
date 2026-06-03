@@ -19,6 +19,7 @@ type Props = {
   myUserId: string;
   onPlayLocal: () => void;
   onPlayVsAI: () => void;
+  onWatchAI: () => void;
   onCreateOnline: () => void;
   onJoinGame: (gameId: string) => void;
   onSpectate: (gameId: string) => void;
@@ -35,6 +36,7 @@ export function LobbyScreen({
   myUserId,
   onPlayLocal,
   onPlayVsAI,
+  onWatchAI,
   onCreateOnline,
   onJoinGame,
   onSpectate,
@@ -76,6 +78,10 @@ export function LobbyScreen({
       <Pressable style={styles.modeBtn} onPress={onPlayVsAI}>
         <Text style={styles.modeTitle}>PLAY VS AI</Text>
         <Text style={styles.modeDesc}>solo match against the computer</Text>
+      </Pressable>
+      <Pressable style={styles.modeBtn} onPress={onWatchAI}>
+        <Text style={styles.modeTitle}>WATCH AI VS AI</Text>
+        <Text style={styles.modeDesc}>sit back as the computer plays itself</Text>
       </Pressable>
       <Pressable style={styles.modeBtn} onPress={onPlayLocal}>
         <Text style={styles.modeTitle}>PLAY LOCAL</Text>

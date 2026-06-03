@@ -1,6 +1,6 @@
 import type { ArmyConfig, BasicRole, Guild } from '@/types/army';
 import { createDefaultArmy } from '@/types/army';
-import { UPGRADE_COSTS } from '@/data/upgradeCosts';
+import { UPGRADE_COSTS, GUILDS } from '@/data/upgradeCosts';
 
 export type Archetype = 'elite' | 'swarm' | 'vanguard' | 'balanced';
 
@@ -12,7 +12,7 @@ export type Archetype = 'elite' | 'swarm' | 'vanguard' | 'balanced';
 //
 // These weightings are deliberate guesses for now. Phase 2 (headless AI-vs-AI
 // self-play) will rank archetypes by measured win rate and replace the guesses.
-const PRIORITIES: Record<Archetype, Record<BasicRole, number>> = {
+export const PRIORITIES: Record<Archetype, Record<BasicRole, number>> = {
   elite:    { Queen: 10, Rook: 8, King: 6, Bishop: 3, Knight: 3, Pawn: 1 },
   swarm:    { Pawn: 9, Knight: 6, Bishop: 5, Queen: 3, Rook: 3, King: 2 },
   vanguard: { Knight: 9, Bishop: 8, Queen: 6, Pawn: 4, Rook: 3, King: 2 },
@@ -60,4 +60,12 @@ export function spendByPriority(
 export function buildAIArmy(humanArmy: ArmyConfig, pointCap: number): ArmyConfig {
   const archetype = ARCHETYPES[Math.floor(Math.random() * ARCHETYPES.length)];
   return spendByPriority(humanArmy.guild, pointCap, PRIORITIES[archetype]);
+}
+
+/** A fully self-chosen AI army: random guild + random archetype, full budget.
+ *  Used for AI-vs-AI watch games where there's no human army to mirror. */
+export function randomAIArmy(pointCap: number): ArmyConfig {
+  const guild: Guild = GUILDS[Math.floor(Math.random() * GUILDS.length)];
+  const archetype = ARCHETYPES[Math.floor(Math.random() * ARCHETYPES.length)];
+  return spendByPriority(guild, pointCap, PRIORITIES[archetype]);
 }

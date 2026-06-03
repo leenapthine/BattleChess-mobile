@@ -9,30 +9,34 @@ import { chooseTurn, type Difficulty } from '@/ai/chooseTurn';
 import { useReplayRecorder } from '@/screens/Game/useReplayRecorder';
 
 type Props = {
-  humanArmy: ArmyConfig; // White, bottom of board
-  aiArmy: ArmyConfig;    // Black, top of board
+  whiteArmy: ArmyConfig;        // bottom of board
+  blackArmy: ArmyConfig;        // top of board
   difficulty: Difficulty;
+  humanColor: Color | null;     // side the human plays; null = watch (bot drives both)
 };
 
-const AI_COLOR: Color = 'Black';
-const THINK_DELAY_MS = 350; // let the human's move settle + show "thinking…"
-const STEP_MS = 450;        // gap between the AI's sub-moves so each animates
+const THINK_DELAY_MS = 350; // let the previous move settle + show "thinking…"
+const STEP_MS = 450;        // gap between the bot's sub-moves so each animates
 
-export function useSoloGame({ humanArmy, aiArmy, difficulty }: Props) {
+export function useSoloGame({ whiteArmy, blackArmy, difficulty, humanColor }: Props) {
   const [state, dispatch] = useReducer(
     gameReducer,
-    { humanArmy, aiArmy },
-    (a) => createInitialState(a.humanArmy, a.aiArmy),
+    { whiteArmy, blackArmy },
+    (a) => createInitialState(a.whiteArmy, a.blackArmy),
   );
 
   const [thinking, setThinking] = useState(false);
   const aiBusy = useRef(false);
 
-  // Drive the AI whenever it's its turn. chooseTurn computes the whole turn as
-  // a deterministic tap-sequence; we dispatch the taps one at a time so each
-  // sub-move plays its animation/SFX, exactly as if a human tapped them.
+  // The bot plays every side that isn't the human's, so humanColor=null means
+  // it drives both — the watch mode.
+  const botToMove = humanColor === null || state.currentTurn !== humanColor;
+
+  // Drive the bot whenever it's a bot side's turn. chooseTurn computes the whole
+  // turn as a deterministic tap-sequence; we dispatch the taps one at a time so
+  // each sub-move plays its animation/SFX, exactly as if a human tapped them.
   useEffect(() => {
-    if (state.currentTurn !== AI_COLOR || state.status.type !== 'active') return;
+    if (!botToMove || state.status.type !== 'active') return;
     if (aiBusy.current) return;
     aiBusy.current = true;
     setThinking(true);
@@ -40,7 +44,7 @@ export function useSoloGame({ humanArmy, aiArmy, difficulty }: Props) {
     const think = setTimeout(() => {
       const actions = chooseTurn(state, difficulty);
       if (!actions) {
-        dispatch({ type: 'RESIGN', resigningColor: AI_COLOR });
+        dispatch({ type: 'RESIGN', resigningColor: state.currentTurn });
         aiBusy.current = false;
         setThinking(false);
         return;
@@ -60,15 +64,16 @@ export function useSoloGame({ humanArmy, aiArmy, difficulty }: Props) {
     }, THINK_DELAY_MS);
 
     return () => clearTimeout(think);
-  }, [state, difficulty]);
+  }, [state, difficulty, botToMove]);
 
-  // The human only controls White, and only on White's turn.
+  // The human controls only their own color, and only on their turn.
   const onSquarePress = useCallback(
     (square: Square) => {
-      if (state.currentTurn !== 'White' || state.status.type !== 'active') return;
+      if (humanColor === null) return; // watch mode: board is read-only
+      if (state.currentTurn !== humanColor || state.status.type !== 'active') return;
       dispatch(classifyAction(square, state));
     },
-    [state],
+    [state, humanColor],
   );
 
   const { canReplay, replayRequest, triggerReplay, resetReplay } = useReplayRecorder(state);
@@ -81,8 +86,9 @@ export function useSoloGame({ humanArmy, aiArmy, difficulty }: Props) {
   }, [resetReplay]);
 
   const onResign = useCallback(() => {
-    dispatch({ type: 'RESIGN', resigningColor: 'White' });
-  }, []);
+    if (humanColor === null) return; // nothing to resign while watching
+    dispatch({ type: 'RESIGN', resigningColor: humanColor });
+  }, [humanColor]);
 
   const selectedPiece = useMemo(() => {
     if (!state.selectedSquare) return null;
