@@ -18,8 +18,8 @@ describe('calculatePointsSpent', () => {
   it('sums upgraded slot costs', () => {
     const army = createDefaultArmy('Necro');
     army.slots[0].upgraded = true; // Rook → DeadLauncher: 12
-    army.slots[3].upgraded = true; // Queen → QueenOfBones: 28
-    expect(calculatePointsSpent(army)).toBe(12 + 28);
+    army.slots[3].upgraded = true; // Queen → QueenOfBones: 34
+    expect(calculatePointsSpent(army)).toBe(12 + 34);
   });
 
   it('full upgrade matches sum of all costs', () => {
