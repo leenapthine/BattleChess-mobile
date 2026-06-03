@@ -1,6 +1,6 @@
 import type { GameState, GameAction, Color } from '@/types/game';
 import { generateTurns } from './generateTurns';
-import { evaluate, WIN_SCORE } from './evaluate';
+import { evaluate, terminalWinner, WIN_SCORE } from './evaluate';
 
 export type Difficulty = {
   // How many plies (half-moves) to search. 1 = greedy (grab the best
@@ -52,9 +52,11 @@ export function chooseTurn(state: GameState, difficulty: Difficulty): GameAction
 // Negamax: value of `state` to whoever is to move in it. `rootColor` is fixed
 // only for the terminal/eval sign via the to-move perspective.
 function negamax(state: GameState, depth: number, alpha: number, beta: number, _rootColor: Color): number {
-  if (state.status.type === 'won') {
-    // The side that just moved won, so it's bad for the side now to move.
-    return -WIN_SCORE;
+  const winner = terminalWinner(state);
+  if (winner) {
+    // Value to the side to move: +WIN if they've won, -WIN if they've lost
+    // (e.g. their own king is gone).
+    return winner === state.currentTurn ? WIN_SCORE : -WIN_SCORE;
   }
   if (depth <= 0) {
     return evaluate(state, state.currentTurn);

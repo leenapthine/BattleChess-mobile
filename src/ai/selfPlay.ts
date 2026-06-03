@@ -3,9 +3,15 @@ import type { ArmyConfig, Guild } from '@/types/army';
 import { createDefaultArmy } from '@/types/army';
 import { createInitialState } from '@/engine/initialBoard';
 import { gameReducer } from '@/engine/gameReducer';
-import { opponentColor } from '@/engine/pieceTraits';
 import { UPGRADE_COSTS } from '@/data/upgradeCosts';
 import { chooseTurn, type Difficulty, DIFFICULTIES } from './chooseTurn';
+import { terminalWinner } from './evaluate';
+
+export type CapRange = { min: number; max: number };
+
+export function randomCap(range: CapRange): number {
+  return range.min + Math.floor(Math.random() * (range.max - range.min + 1));
+}
 
 export type GameOutcome = {
   winner: Color | null; // null = draw (hit the ply cap)
@@ -31,18 +37,19 @@ export function playGame(
   let state = createInitialState(whiteArmy, blackArmy);
   let plies = 0;
 
-  while (state.status.type === 'active' && plies < maxPlies) {
+  while (terminalWinner(state) === null && plies < maxPlies) {
     const actions = chooseTurn(state, difficulty);
     if (!actions) {
-      return { winner: opponentColor(state.currentTurn), plies, reason: 'noMoves' };
+      // Side to move has no legal turn — treat as a loss for that side.
+      const loser = state.currentTurn;
+      return { winner: loser === 'White' ? 'Black' : 'White', plies, reason: 'noMoves' };
     }
     for (const a of actions) state = gameReducer(state, a);
     plies += 1;
   }
 
-  if (state.status.type === 'won') {
-    return { winner: state.status.winner, plies, reason: 'kingCapture' };
-  }
+  const winner = terminalWinner(state);
+  if (winner) return { winner, plies, reason: 'kingCapture' };
   return { winner: null, plies, reason: 'plyCap' };
 }
 
@@ -50,13 +57,15 @@ export type Matchup = { aWins: number; bWins: number; draws: number; games: numb
 
 /**
  * Play `games` between two army builders, alternating colors each game so the
- * first-move (White) advantage cancels out. `buildA`/`buildB` are thunks
- * because army construction is randomized — call them fresh per game.
+ * first-move (White) advantage cancels out. Each game rolls a random point cap
+ * from `capRange` and builds *both* armies at that cap (fair). Builders take
+ * the cap and may be randomized internally — they're called fresh per game.
  */
 export function runMatchup(
-  buildA: () => ArmyConfig,
-  buildB: () => ArmyConfig,
+  buildA: (cap: number) => ArmyConfig,
+  buildB: (cap: number) => ArmyConfig,
   games: number,
+  capRange: CapRange,
   opts?: PlayOptions,
 ): Matchup {
   let aWins = 0;
@@ -64,9 +73,10 @@ export function runMatchup(
   let draws = 0;
 
   for (let i = 0; i < games; i += 1) {
+    const cap = randomCap(capRange);
     const aIsWhite = i % 2 === 0;
-    const white = aIsWhite ? buildA() : buildB();
-    const black = aIsWhite ? buildB() : buildA();
+    const white = aIsWhite ? buildA(cap) : buildB(cap);
+    const black = aIsWhite ? buildB(cap) : buildA(cap);
     const r = playGame(white, black, opts);
 
     if (r.winner === null) {

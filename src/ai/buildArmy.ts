@@ -2,7 +2,7 @@ import type { ArmyConfig, BasicRole, Guild } from '@/types/army';
 import { createDefaultArmy } from '@/types/army';
 import { UPGRADE_COSTS, GUILDS } from '@/data/upgradeCosts';
 
-export type Archetype = 'elite' | 'swarm' | 'vanguard' | 'balanced';
+export type Archetype = 'elite' | 'swarm' | 'vanguard' | 'balanced' | 'defensive' | 'ranged';
 
 // Per-archetype spending priority over the basic roles. Upgrade costs are
 // balanced (cost ≈ power), so the cost-effective play is simply to spend the
@@ -17,6 +17,11 @@ export const PRIORITIES: Record<Archetype, Record<BasicRole, number>> = {
   swarm:    { Pawn: 9, Knight: 6, Bishop: 5, Queen: 3, Rook: 3, King: 2 },
   vanguard: { Knight: 9, Bishop: 8, Queen: 6, Pawn: 4, Rook: 3, King: 2 },
   balanced: { Queen: 6, Rook: 5, Bishop: 4, Knight: 4, King: 3, Pawn: 2 },
+  // Turtle: a hardened back rank + ranged support. The Rook slot is each
+  // guild's projectile unit (DeadLauncher / Beholder / BoulderThrower / Portal).
+  defensive: { King: 9, Rook: 8, Bishop: 6, Queen: 4, Pawn: 4, Knight: 2 },
+  // Lean hard into ranged/projectile power (Rook + Bishop slots).
+  ranged:   { Rook: 10, Bishop: 8, Queen: 5, King: 4, Knight: 2, Pawn: 2 },
 };
 
 export const ARCHETYPES = Object.keys(PRIORITIES) as Archetype[];

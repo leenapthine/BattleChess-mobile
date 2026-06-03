@@ -25,6 +25,7 @@ describe('self-play harness', () => {
       () => createDefaultArmy('Necro'),
       () => createDefaultArmy('Beast'),
       6,
+      { min: 30, max: 60 },
       { maxPlies: 60 },
     );
     expect(m.games).toBe(6);

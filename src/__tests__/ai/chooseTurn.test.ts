@@ -30,6 +30,25 @@ describe('chooseTurn', () => {
     expect(after.pieces.some((p) => p.type === 'Queen' && p.color === 'Black')).toBe(false);
   });
 
+  it('never sacrifices into its own king (NecroPawn blast guard)', () => {
+    resetIds();
+    // The NecroPawn's blast would catch the adjacent friendly king (and an
+    // enemy pawn). Detonating loses the game, so the bot must do anything else.
+    const state = makeState(
+      [
+        makePiece('NecroPawn', 'White', 1, 1),
+        makePiece('King', 'White', 1, 2),  // adjacent → in the blast
+        makePiece('Pawn', 'Black', 0, 0),  // also adjacent
+        makePiece('King', 'Black', 7, 7),
+      ],
+      { currentTurn: 'White' },
+    );
+
+    const after = applyTurn(state, chooseTurn(state, DIFFICULTIES.normal));
+    // White king survives — the bot didn't blow itself up.
+    expect(after.pieces.some((p) => p.type === 'King' && p.color === 'White')).toBe(true);
+  });
+
   it('returns null when there are no legal turns', () => {
     resetIds();
     const state = makeState([makePiece('King', 'White', 0, 0)], {

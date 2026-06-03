@@ -1,7 +1,7 @@
 import type { BasicRole, Guild } from '@/types/army';
 import { UPGRADE_COSTS } from '@/data/upgradeCosts';
 import { ARCHETYPES, PRIORITIES, spendByPriority, type Archetype } from './buildArmy';
-import { runMatchup, randomArmy, playGame, type PlayOptions } from './selfPlay';
+import { runMatchup, randomArmy, playGame, randomCap, type PlayOptions, type CapRange } from './selfPlay';
 
 const ROLES: BasicRole[] = ['Pawn', 'Knight', 'Bishop', 'Rook', 'Queen', 'King'];
 
@@ -15,7 +15,7 @@ export type ArchetypeStanding = { archetype: Archetype; score: number; games: nu
  */
 export function runArchetypeTournament(
   guild: Guild,
-  pointCap: number,
+  capRange: CapRange,
   gamesPerPair: number,
   opts?: PlayOptions,
 ): ArchetypeStanding[] {
@@ -28,9 +28,10 @@ export function runArchetypeTournament(
       const a = ARCHETYPES[i];
       const b = ARCHETYPES[j];
       const r = runMatchup(
-        () => spendByPriority(guild, pointCap, PRIORITIES[a]),
-        () => spendByPriority(guild, pointCap, PRIORITIES[b]),
+        (cap) => spendByPriority(guild, cap, PRIORITIES[a]),
+        (cap) => spendByPriority(guild, cap, PRIORITIES[b]),
         gamesPerPair,
+        capRange,
         opts,
       );
       score[a] += r.aWins + r.draws * 0.5;
@@ -72,7 +73,7 @@ export type BalanceRow = {
  */
 export function runBalanceReport(
   guild: Guild,
-  pointCap: number,
+  capRange: CapRange,
   games: number,
   opts?: PlayOptions,
 ): BalanceRow[] {
@@ -81,8 +82,9 @@ export function runBalanceReport(
   for (const role of ROLES) { score[role] = 0; sample[role] = 0; }
 
   for (let i = 0; i < games; i += 1) {
-    const white = randomArmy(guild, pointCap);
-    const black = randomArmy(guild, pointCap);
+    const cap = randomCap(capRange);
+    const white = randomArmy(guild, cap);
+    const black = randomArmy(guild, cap);
     const outcome = playGame(white, black, opts);
 
     for (const [army, color] of [[white, 'White'], [black, 'Black']] as const) {
