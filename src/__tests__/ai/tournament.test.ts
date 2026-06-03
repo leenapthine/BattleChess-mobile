@@ -48,8 +48,12 @@ function appendResults(markdown: string) {
 
   it('ranks archetypes + per-unit balance per guild, and records it', () => {
     const stamp = new Date().toISOString();
-    let md = `\n## ${stamp}\n\n`;
-    md += `params: games=${GAMES}, cap=${CAP_RANGE.min}–${CAP_RANGE.max} (random/game), depth=${DEPTH}, maxPlies=${MAX_PLIES}\n`;
+    // Write the run header first, then append each guild as it finishes — so an
+    // interrupted overnight run still keeps every guild that completed.
+    appendResults(
+      `\n## ${stamp}\n\n` +
+        `params: games=${GAMES}, cap=${CAP_RANGE.min}–${CAP_RANGE.max} (random/game), depth=${DEPTH}, maxPlies=${MAX_PLIES}\n`,
+    );
 
     for (const guild of GUILDS_TO_RUN) {
       const standings = runArchetypeTournament(guild, CAP_RANGE, GAMES, opts);
@@ -64,10 +68,9 @@ function appendResults(markdown: string) {
 
       // eslint-disable-next-line no-console
       console.log(block);
-      md += block;
+      appendResults(block); // persist this guild before moving on
     }
 
-    appendResults(md);
     // eslint-disable-next-line no-console
     console.log(`\nresults appended to ${RESULTS_FILE}`);
     expect(true).toBe(true);
