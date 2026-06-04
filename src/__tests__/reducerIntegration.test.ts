@@ -178,7 +178,9 @@ describe('QoB revival from all capture paths', () => {
     const s2 = tap(s1, { row: 1, col: 0 });
     const s3 = tap(s2, { row: 1, col: 1 });
     expect(s3.currentTurn).toBe('White');
-    expect(s3.pieces.find(p => p.type === 'QueenOfBones')).toBeDefined();
+    // Revives as a plain Queen (one-time second life), not another QueenOfBones.
+    expect(s3.pieces.find(p => p.type === 'Queen')).toBeDefined();
+    expect(s3.pieces.find(p => p.type === 'QueenOfBones')).toBeUndefined();
   });
 });
 

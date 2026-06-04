@@ -32,13 +32,15 @@ describe('QueenOfBones', () => {
     expect(canRevive('White', [p1])).toBe(false);
   });
 
-  it('performRevival spawns queen at d1 and removes sacrifices', () => {
+  it('performRevival spawns a plain Queen at d1 and removes sacrifices', () => {
     const p1 = makePiece('Pawn', 'White', 1, 0);
     const p2 = makePiece('Pawn', 'White', 1, 1);
     const state = makeState([p1, p2]);
     const result = performRevival([p1.id, p2.id], 'White', state);
     expect(result.pieces).toHaveLength(1);
-    expect(result.pieces[0].type).toBe('QueenOfBones');
+    // Balance nerf: revives as a plain Queen, not another QueenOfBones, so the
+    // second life is one-time (a plain Queen has no revival).
+    expect(result.pieces[0].type).toBe('Queen');
     expect(result.pieces[0].row).toBe(0);
     expect(result.pieces[0].col).toBe(3);
   });
@@ -49,7 +51,7 @@ describe('QueenOfBones', () => {
     const blocker = makePiece('Rook', 'White', 0, 3);
     const state = makeState([p1, p2, blocker]);
     const result = performRevival([p1.id, p2.id], 'White', state);
-    expect(result.pieces.find(p => p.type === 'QueenOfBones')).toBeUndefined();
+    expect(result.pieces.find(p => p.type === 'Queen')).toBeUndefined();
     expect(result.pieces).toHaveLength(1);
   });
 
@@ -94,10 +96,32 @@ describe('QueenOfBones', () => {
     expect(s3.abilityMode.type).toBe('none');
     expect(s3.pieces.find(p => p.id === p1.id)).toBeUndefined();
     expect(s3.pieces.find(p => p.id === p2.id)).toBeUndefined();
-    const revived = s3.pieces.find(p => p.type === 'QueenOfBones');
+    const revived = s3.pieces.find(p => p.type === 'Queen');
     expect(revived).toBeDefined();
     expect(revived!.row).toBe(0);
     expect(revived!.col).toBe(3);
+    // Nerf: the revived piece is a plain Queen, not a QueenOfBones.
+    expect(s3.pieces.find(p => p.type === 'QueenOfBones')).toBeUndefined();
+  });
+
+  it('the revived plain Queen cannot revive again (one-time second life)', () => {
+    // A plain Queen with 2 pawns available, captured — no second revival fires,
+    // which is exactly what reviving-as-Queen buys us.
+    const queen = makePiece('Queen', 'White', 4, 4);
+    const attacker = makePiece('Rook', 'Black', 4, 0);
+    const p1 = makePiece('NecroPawn', 'White', 1, 0);
+    const p2 = makePiece('NecroPawn', 'White', 1, 1);
+    const wk = makePiece('King', 'White', 0, 4);
+    const bk = makePiece('King', 'Black', 7, 4);
+    const state = makeState([queen, attacker, p1, p2, wk, bk], {
+      currentTurn: 'Black',
+      selectedSquare: { row: 4, col: 0 },
+      highlights: [{ row: 4, col: 4, color: 'capture' }],
+    });
+
+    const s1 = tap(state, { row: 4, col: 4 });
+    expect(s1.abilityMode.type).not.toBe('sacrificeSelection');
+    expect(s1.pieces.find(p => p.id === queen.id)).toBeUndefined();
   });
 
   it('revival does not consume QoB teams turn', () => {
@@ -281,7 +305,7 @@ describe('QueenOfBones', () => {
     const s1 = tap(state, { row: 4, col: 4 });
     const s2 = tap(s1, { row: 1, col: 0 });
     const s3 = tap(s2, { row: 1, col: 1 });
-    const revived = s3.pieces.find(p => p.type === 'QueenOfBones');
+    const revived = s3.pieces.find(p => p.type === 'Queen');
     expect(revived).toBeDefined();
     expect(revived!.row).toBe(0);
     expect(revived!.col).toBe(3);

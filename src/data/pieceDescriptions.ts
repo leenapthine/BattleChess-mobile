@@ -13,7 +13,7 @@ export const pieceDescriptions: Record<PieceType, string> = {
   Necromancer: 'Bishop movement. After capturing, raise a Pawn on an adjacent empty tile.',
   DeadLauncher: 'Rook movement. Load an adjacent pawn, then launch it to destroy a target at range 3.',
   GhoulKing: 'King movement. Once per game, raise a NecroPawn on an adjacent empty tile (free action).',
-  QueenOfBones: 'Queen movement. When captured, sacrifice 2 friendly pawns to revive at spawn.',
+  QueenOfBones: 'Queen movement. When captured, sacrifice 2 friendly pawns to revive once as a plain Queen at spawn.',
 
   HellPawn: 'Standard pawn. Capturing a non-pawn transforms HellPawn into that piece type.',
   Prowler: 'Knight movement. After capturing, makes a mandatory second knight move.',

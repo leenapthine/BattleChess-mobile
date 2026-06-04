@@ -58,6 +58,7 @@ export const pieceDetails: Record<PieceType, string[]> = {
   QueenOfBones: [
     'Moves in all 8 directions like a Queen.',
     'When captured, sacrifices 2 friendly Pawns to revive at her spawn tile.',
+    'Revives as a plain Queen — a one-time second life, with no further revival.',
   ],
 
   // ── Demon ─────────────────────────────────────────────────

@@ -318,9 +318,10 @@ export function handleAbilityTargetClick(state: GameState, square: Square): Game
   }
 }
 
-// QoB revival: player picks 2 friendly pawns to sacrifice, then QoB
-// respawns at home square. If a Prowler capture triggered the revival,
-// the Prowler gets its second move after revival completes.
+// QoB revival: player picks 2 friendly pawns to sacrifice, then a plain Queen
+// respawns at the home square (see performRevival — reviving as a mortal Queen
+// is the balance nerf, so the second life is one-time). If a Prowler capture
+// triggered the revival, the Prowler gets its second move after it completes.
 export function handleSacrificeSelection(state: GameState, square: Square): GameState {
   if (state.abilityMode.type !== 'sacrificeSelection') return state;
   const { queenColor, sacrificeIds, pendingSecondMove } = state.abilityMode;

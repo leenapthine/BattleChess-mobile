@@ -137,11 +137,13 @@ Each slot is either basic (no points spent) or upgraded to the guild equivalent.
 | Pawn → | Necro | Demon | Beast | Wizard |
 |---|---|---|---|---|
 | Pawn upgrade | 8 (NecroPawn) | 10 (HellPawn) | 7 (PawnHopper) | 7 (YoungWiz) |
-| Knight upgrade | 18 (GhostKnight) | 26 (Prowler) | 10 (BeastKnight) | 12 (Familiar) |
+| Knight upgrade | 16 (GhostKnight) | 26 (Prowler) | 10 (BeastKnight) | 12 (Familiar) |
 | Bishop upgrade | 10 (Necromancer) | 20 (Howler) | 15 (BeastDruid) | 16 (WizardTower) |
 | Rook upgrade | 12 (DeadLauncher) | 20 (Beholder) | 16 (BoulderThrower) | 16 (Portal) |
-| Queen upgrade | 28 (QueenOfBones) | 32 (QueenOfDestruction) | 30 (QueenOfDomination) | 26 (QueenOfIllusions) |
-| King upgrade | 12 (GhoulKing) | 20 (HellKing) | 18 (FrogKing) | 24 (WizardKing) |
+| Queen upgrade | 34 (QueenOfBones) | 32 (QueenOfDestruction) | 32 (QueenOfDomination) | 26 (QueenOfIllusions) |
+| King upgrade | 12 (GhoulKing) | 22 (HellKing) | 18 (FrogKing) | 24 (WizardKing) |
+
+> Costs are tuned from self-play (`sim-results/results.md`); iteration 1 (2026-06-03) raised Necro/Beast Queens and Demon King, lowered Necro Knight.
 
 ---
 
@@ -468,14 +470,17 @@ The undead manipulation faction. Specializes in resurrection, sacrifice, and cro
 **Special — Revival (triggered on capture):**
 - When a QueenOfBones is captured, `triggerQueenOfBonesRevival()` fires
 - If the owning player has **2 or more** friendly pawn-type units (`Pawn`, `NecroPawn`, `HellPawn`, `YoungWiz`, `PawnHopper`), those units are highlighted cyan
-- Player clicks 2 of them sequentially → both are removed → QueenOfBones re-spawns at its original spawn square (col 3, row 0 for White or row 7 for Black)
+- Player clicks 2 of them sequentially → both are removed → a **plain Queen** re-spawns at the original QueenOfBones spawn square (col 3, row 0 for White or row 7 for Black)
 - **Visual effect:** a green/white `PixelBurst` rises at the respawn square (`revive` effect)
 - If spawn square is occupied, revival silently fails and no refund occurs
+
+> **Balance note (2026-06-04):** revival was changed to spawn a **plain Queen** rather than another QueenOfBones. The original recursive phoenix (it returned as a QoB and could revive again for 2 pawns each time) was a near-immortal queen that won ~81% of self-play games at any affordable price (see `sim-results/results.md`). It's now a *one-time* second life — a plain Queen has no revival.
 
 **Edge Cases:**
 - The revival uses `isInSacrificeSelectionMode` to block other clicks during selection
 - The 2 sacrifices must be selected one at a time; after the first, highlights update to only show remaining eligible targets
-- Revival assigns a new UUID to the revived QueenOfBones (it's a brand new piece object)
+- The revived piece is a **plain Queen** with a new UUID (a brand new piece object); it cannot revive again
+- A revived Queen captured later triggers no revival (it is not a QueenOfBones)
 - If the Prowler happens to be highlighted (due to a leftover state bug), clicking it in sacrifice mode has a Prowler-type check that blocks it from being sacrificed
 - The revival turn logic: if `queenColor !== currentTurn()`, it calls `switchTurn()` — this is an attempt to ensure the revival doesn't eat a turn, but the flow is fragile
 

@@ -42,9 +42,16 @@ export function performRevival(
     return { ...state, pieces: updatedPieces };
   }
 
+  // BALANCE (2026-06-04): the queen revives as a *plain* Queen, not another
+  // QueenOfBones. The original recursive phoenix — it returned as a QoB and
+  // could revive again and again for 2 pawns each time — made it a near-immortal
+  // queen that won ~81% of self-play games at any affordable price (see
+  // sim-results/results.md). Reviving as a mortal Queen keeps the one-time
+  // second life and its flavour, but a plain Queen has no revival, so it can't
+  // come back a second time.
   const revivedQueen: Piece = {
     id: generateId(),
-    type: 'QueenOfBones',
+    type: 'Queen',
     color: queenColor,
     row: spawnRow,
     col: spawnCol,
