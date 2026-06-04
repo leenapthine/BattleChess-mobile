@@ -140,10 +140,10 @@ Each slot is either basic (no points spent) or upgraded to the guild equivalent.
 | Knight upgrade | 16 (GhostKnight) | 26 (Prowler) | 10 (BeastKnight) | 12 (Familiar) |
 | Bishop upgrade | 10 (Necromancer) | 20 (Howler) | 15 (BeastDruid) | 16 (WizardTower) |
 | Rook upgrade | 12 (DeadLauncher) | 20 (Beholder) | 16 (BoulderThrower) | 16 (Portal) |
-| Queen upgrade | 34 (QueenOfBones) | 32 (QueenOfDestruction) | 32 (QueenOfDomination) | 26 (QueenOfIllusions) |
+| Queen upgrade | 30 (QueenOfBones) | 32 (QueenOfDestruction) | 32 (QueenOfDomination) | 26 (QueenOfIllusions) |
 | King upgrade | 12 (GhoulKing) | 22 (HellKing) | 18 (FrogKing) | 24 (WizardKing) |
 
-> Costs are tuned from self-play (`sim-results/results.md`); iteration 1 (2026-06-03) raised Necro/Beast Queens and Demon King, lowered Necro Knight.
+> Costs are tuned from self-play (`sim-results/results.md`). Iter 1 (2026-06-03) raised Necro/Beast Queens and Demon King, lowered Necro Knight. Iter 2 (2026-06-04) dropped the Necro Queen 34→30 after her revive-as-plain-Queen nerf.
 
 ---
 
@@ -427,18 +427,22 @@ The undead manipulation faction. Specializes in resurrection, sacrifice, and cro
 
 **Movement:** Unlimited orthogonal (standard Rook)
 
-**Special — Pawn Launch (5-step interaction):**
+**Special — Pawn Launch (load is a free action — load + launch/move in one turn):**
 1. **Click 1:** Select — shows Rook moves + self highlighted cyan
 2. **Click 2 (on self):** Enter Loading Mode — highlights adjacent tiles cyan (to pick a pawn to load)
-3. **Click 3 (adjacent pawn):** Load it — the pawn is removed from board, `pawnLoaded = true` on the launcher; turn ends
+3. **Click 3 (adjacent pawn):** Load it — the pawn is removed from board, `pawnLoaded = true`. **The turn does NOT end** — the launcher stays selected (showing its Rook moves) so the same turn can be finished by launching it or moving it.
 4. **Click 4 (on self, while loaded):** Enter Launch Mode — highlights Manhattan-distance-3 tiles in red
-5. **Click 5 (red tile):** Launch — removes any piece at that tile, `pawnLoaded = false`; turn ends
+5. **Click 5 (red tile):** Launch — removes any piece at that tile, `pawnLoaded = false`; **turn ends**
+
+So a single turn is: load → (launch **or** move). You don't get to launch *and* move.
 
 **Visual effect:** the launcher records the loaded pawn's type in `loadedPawnType` on load; on launch a `LaunchProjectile` hurls that pawn's actual sprite (Pawn / NecroPawn / HellPawn / YoungWiz / PawnHopper) in a spinning arc to the target (`launch` effect).
 
+> **Balance note (2026-06-04):** loading used to *end the turn*, so load→fire took two turns and the target usually escaped, leaving the launcher weak (~43% in self-play). Loading is now a free pre-action, so load+fire happens in one turn. The Portal got a related change: both its load and unload are free, and its move ends the turn.
+
 **Edge Cases:**
-- While loaded but NOT in launch mode, the DeadLauncher can still move normally (Rook movement)
-- Loading consumes the turn; launching also consumes the turn (each is a full action)
+- After loading you finish the turn by launching, moving the launcher, or making any other normal move (loading itself is free — it just costs the pawn)
+- Launching consumes the turn; loading does not
 - Launch targets are at **exactly** Manhattan distance 3 — it cannot shoot at distance 1, 2, or 4
 - The launch highlights ALL squares at distance 3, regardless of whether an enemy is there; empty squares and even friendly squares are highlighted red (the actual capture check only happens on click)
 - Valid pieces to load: `Pawn`, `NecroPawn`, `YoungWiz`, `PawnHopper`, `HellPawn`
@@ -767,19 +771,23 @@ The wizard faction bends rules — repositioning, shooting, teleporting, and shi
 
 **Movement:** Unlimited orthogonal (standard Rook)
 
-**Special — Teleport Storage (5-step interaction):**
+**Special — Teleport Storage (load and unload are BOTH free; the move ends the turn):**
 1. **Click 1:** Select → Rook moves highlighted + self in cyan (enter-loading mode option)
 2. **Click 2 (on self):** Enter Loading Mode → adjacent tiles highlighted cyan (to pick a piece to store)
-3. **Click 3 (adjacent friendly piece):** Load it → piece is removed from board, stored in ALL friendly Portals as `pieceLoaded`; turn ends
+3. **Click 3 (adjacent friendly piece):** Load it → piece is removed from board, stored in ALL friendly Portals as `pieceLoaded`. **Free — turn does NOT end**; the Portal stays selected.
 4. **Click 4 (on any loaded Portal):** Enter Eject Mode → adjacent tiles highlighted cyan (to choose ejection square)
-5. **Click 5 (adjacent empty tile):** Eject → piece is placed there; all friendly Portals cleared; does NOT end turn
+5. **Click 5 (adjacent empty tile):** Eject → piece is placed there; all friendly Portals cleared. **Free — turn does NOT end**; the Portal stays selected.
+6. **Move the Portal (or any piece):** ends the turn.
+
+So **loading and unloading are both free**; the **move** is the turn-ender. In one turn you can load a piece, unload it, *and* move (`load → unload → move`). Carrying a piece a long distance (load → move far → drop) happens across two turns, since the move ends the turn.
 
 **Visual effect:** blue `PixelBurst` shimmers at both the Portal and the eject square (`portalOut` effect).
 
+> **Balance note (2026-06-04):** previously loading ended the turn and ejecting didn't (the old "BUG #9"). Now the rule is deliberate and symmetric — **load and unload are both free, and a move ends the turn.** This makes the Portal a usable pick-up/drop tool. (The DeadLauncher got a related but distinct change: load is free, then launch *or* move.)
+
 **Edge Cases:**
 - The stored piece is shared across ALL same-color Portals — any Portal can eject it
-- Ejection does not consume the turn (`switchTurn()` is NOT called after eject)
-- Loading DOES end the turn
+- Neither loading nor ejecting consumes the turn — a normal move does
 - The loaded piece is physically removed from the board while stored — if the Portal is captured while a piece is loaded, the loaded piece is lost permanently
 - Any piece type can be loaded into a Portal (not just pawns) — the loading check only requires the piece is friendly and adjacent
 - Ejection requires the target square to be unoccupied; if all adjacent squares are occupied, the eject cannot proceed

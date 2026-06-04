@@ -2,10 +2,12 @@ import type { Guild, BasicRole } from '@/types/army';
 import type { PieceType } from '@/types/game';
 
 export const UPGRADE_COSTS: Record<Guild, Record<BasicRole, number>> = {
-  // Iteration 1 of self-play balancing (2026-06-03, see sim-results/results.md):
-  // Necro Queen 28→34 (won 80.7%), Necro Knight 18→16 (43.5%),
-  // Beast Queen 30→32 (56.8%), Demon King 20→22 (55.4%).
-  Necro:  { Pawn: 8,  Knight: 16, Bishop: 10, Rook: 12, Queen: 34, King: 12 },
+  // Self-play balancing (see sim-results/results.md):
+  // - Iter 1 (2026-06-03): Necro Knight 18→16, Necro Queen 28→34,
+  //   Beast Queen 30→32, Demon King 20→22.
+  // - Iter 2 (2026-06-04): Necro Queen 34→30, now that the revive-as-plain-Queen
+  //   nerf removed the near-immortality the price hike was compensating for.
+  Necro:  { Pawn: 8,  Knight: 16, Bishop: 10, Rook: 12, Queen: 30, King: 12 },
   Demon:  { Pawn: 10, Knight: 26, Bishop: 20, Rook: 20, Queen: 32, King: 22 },
   Beast:  { Pawn: 7,  Knight: 10, Bishop: 15, Rook: 16, Queen: 32, King: 18 },
   Wizard: { Pawn: 7,  Knight: 12, Bishop: 16, Rook: 16, Queen: 26, King: 24 },

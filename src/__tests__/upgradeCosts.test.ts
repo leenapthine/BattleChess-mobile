@@ -18,7 +18,7 @@ describe('UPGRADE_COSTS', () => {
 
   it('Necro costs match spec', () => {
     expect(UPGRADE_COSTS.Necro).toEqual({
-      Pawn: 8, Knight: 16, Bishop: 10, Rook: 12, Queen: 34, King: 12,
+      Pawn: 8, Knight: 16, Bishop: 10, Rook: 12, Queen: 30, King: 12,
     });
   });
 

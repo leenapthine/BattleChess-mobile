@@ -47,15 +47,85 @@ describe('Portal', () => {
     expect(portal2.pieceLoaded).not.toBeNull();
   });
 
-  it('BUG #9: performEject does NOT switch turn', () => {
+  it('unloading is free: ejecting does NOT end the turn (the move does)', () => {
+    // Loading and unloading are both free for the Portal — the move ends the
+    // turn. So after ejecting, it's still the same player's turn and the portal
+    // stays selected (ready to move and finish the turn).
     const loaded = makePiece('Pawn', 'White', 0, 0);
     const p = makePiece('Portal', 'White', 4, 4, { pieceLoaded: loaded });
-    const state = makeState([p]);
-    const result = performEject(p, { row: 4, col: 5 }, state);
-    expect(result.currentTurn).toBe('White');
+    const wk = makePiece('King', 'White', 0, 4);
+    const bk = makePiece('King', 'Black', 7, 4);
+    const state = makeState([p, wk, bk], {
+      currentTurn: 'White',
+      abilityMode: { type: 'launch', pieceId: p.id },
+      highlights: [{ row: 4, col: 5, color: 'ability' }],
+    });
+
+    const result = tap(state, { row: 4, col: 5 });
+    expect(result.currentTurn).toBe('White');             // free — turn continues
+    expect(result.selectedSquare).toEqual({ row: 4, col: 4 }); // portal stays selected
     const ejected = result.pieces.find(pr => pr.id === loaded.id)!;
     expect(ejected.row).toBe(4);
     expect(ejected.col).toBe(5);
+  });
+
+  it('load → unload → move all happen in one turn', () => {
+    const portal = makePiece('Portal', 'White', 4, 4);
+    const ally = makePiece('Pawn', 'White', 4, 5);
+    const wk = makePiece('King', 'White', 0, 4);
+    const bk = makePiece('King', 'Black', 7, 4);
+    const state = makeState([portal, ally, wk, bk], { currentTurn: 'White' });
+
+    const s0 = tap(state, { row: 4, col: 4 });       // select portal
+    const s1 = tap(s0, { row: 4, col: 4 });          // self-click → loading mode
+    const s2 = tap(s1, { row: 4, col: 5 });          // load the ally (free)
+    expect(s2.currentTurn).toBe('White');
+    const s3 = tap(s2, { row: 4, col: 4 });          // self-click → eject mode
+    const s4 = tap(s3, { row: 4, col: 3 });          // unload to (4,3) (free)
+    expect(s4.currentTurn).toBe('White');
+    expect(s4.pieces.find(p => p.id === ally.id)).toBeDefined();
+    const s5 = tap(s4, { row: 3, col: 4 });          // move the portal → ends turn
+    expect(s5.currentTurn).toBe('Black');
+  });
+
+  it('cannot unload onto an occupied square or its own square', () => {
+    const loaded = makePiece('Pawn', 'White', 0, 0);
+    const portal = makePiece('Portal', 'White', 4, 4, { pieceLoaded: loaded });
+    const blocker = makePiece('Pawn', 'White', 4, 5); // occupies an adjacent square
+    const wk = makePiece('King', 'White', 0, 4);
+    const bk = makePiece('King', 'Black', 7, 4);
+    const pieces = [portal, blocker, wk, bk];
+    const state = makeState(pieces, {
+      currentTurn: 'White',
+      abilityMode: { type: 'launch', pieceId: portal.id },
+      highlights: getEjectTargets(portal, pieces), // adjacent EMPTY only
+    });
+
+    // Occupied adjacent square → not a valid target → no eject (still stored).
+    const s1 = tap(state, { row: 4, col: 5 });
+    expect(s1.pieces.find(p => p.id === portal.id)!.pieceLoaded).not.toBeNull();
+    expect(s1.pieces.filter(p => p.row === 4 && p.col === 5)).toHaveLength(1);
+
+    // The portal's own square → not a valid target → no eject.
+    const s2 = tap(state, { row: 4, col: 4 });
+    expect(s2.pieces.find(p => p.id === portal.id)!.pieceLoaded).not.toBeNull();
+  });
+
+  it('loading does NOT end the turn (free pre-action)', () => {
+    const portal = makePiece('Portal', 'White', 4, 4);
+    const ally = makePiece('Pawn', 'White', 4, 5);
+    const wk = makePiece('King', 'White', 0, 4);
+    const bk = makePiece('King', 'Black', 7, 4);
+    const state = makeState([portal, ally, wk, bk], {
+      currentTurn: 'White',
+      abilityMode: { type: 'loading', pieceId: portal.id },
+      highlights: [{ row: 4, col: 5, color: 'ability' }],
+    });
+
+    const s1 = tap(state, { row: 4, col: 5 });
+    expect(s1.currentTurn).toBe('White');             // turn continues
+    expect(s1.abilityMode.type).toBe('none');
+    expect(s1.selectedSquare).toEqual({ row: 4, col: 4 }); // portal stays selected
   });
 
   it('performEject clears pieceLoaded on all friendly portals', () => {

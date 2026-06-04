@@ -1,7 +1,6 @@
 import type { Piece, Highlight, Square, GameState } from '@/types/game';
 import { getRookMoves } from '@/engine/helpers/moveHelpers';
 import { getAdjacentSquares, getPieceAt, isEmpty, updatePiece } from '@/engine/utils';
-import { opponentColor } from '@/engine/pieceTraits';
 
 export function getValidMoves(piece: Piece, pieces: Piece[]): Highlight[] {
   return getRookMoves(piece, pieces);
@@ -39,13 +38,16 @@ export function performLoad(
     return p;
   });
 
+  // Loading no longer ends the turn (it's a free pre-action). The portal stays
+  // selected, showing its moves, so the same turn can be finished by ejecting
+  // (self-click) or moving the portal. The turn ends on eject/move, not here.
+  const loadedPortal = updatedPieces.find(p => p.id === portal.id) ?? portal;
   return {
     ...state,
     pieces: updatedPieces,
-    selectedSquare: null,
-    highlights: [],
+    selectedSquare: { row: portal.row, col: portal.col },
+    highlights: getRookMoves(loadedPortal, updatedPieces),
     abilityMode: { type: 'none' },
-    currentTurn: opponentColor(state.currentTurn),
   };
 }
 
@@ -55,6 +57,9 @@ export function performEject(
   state: GameState,
 ): GameState {
   if (!portal.pieceLoaded) return state;
+  // Never drop onto an occupied square (incl. the portal's own square). The
+  // handler already validates against getEjectTargets; this guards direct calls.
+  if (!isEmpty(targetSquare, state.pieces)) return state;
 
   const ejected: Piece = {
     ...portal.pieceLoaded,
@@ -71,11 +76,16 @@ export function performEject(
 
   updatedPieces = [...updatedPieces, ejected];
 
+  // Unloading is a FREE action — it does not end the turn (the portal's move
+  // does). The portal stays selected, showing its moves, so the player can
+  // still move it (or another piece) to finish the turn. So a turn can be
+  // load → unload → move, all in one. (See GAME_OVERVIEW "Loaders".)
+  const portalAfter = updatedPieces.find(p => p.id === portal.id) ?? portal;
   return {
     ...state,
     pieces: updatedPieces,
-    selectedSquare: null,
-    highlights: [],
+    selectedSquare: { row: portal.row, col: portal.col },
+    highlights: getRookMoves(portalAfter, updatedPieces),
     abilityMode: { type: 'none' },
     lastEffect: {
       type: 'portalOut',

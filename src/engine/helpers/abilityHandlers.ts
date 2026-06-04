@@ -172,12 +172,22 @@ export function handleLoadingAbility(state: GameState, square: Square): GameStat
       loadedPawnType: target.type,
     });
     const removed = updated.filter(p => p.id !== target.id);
-    return checkWinCondition(switchTurn({
-      ...state, pieces: removed, selectedSquare: null, highlights: [], abilityMode: { type: 'none' },
-    }));
+    const loaded = removed.find(p => p.id === loader.id)!;
+    // Loading no longer ends the turn (it's a free pre-action) — the launcher
+    // stays selected, showing its moves, so the same turn can be finished by
+    // launching it (self-click) or moving it. See GAME_OVERVIEW "Loaders".
+    return checkWinCondition({
+      ...state,
+      pieces: removed,
+      selectedSquare: { row: loaded.row, col: loaded.col },
+      highlights: getPieceModule('DeadLauncher')!.getValidMoves(loaded, removed),
+      abilityMode: { type: 'none' },
+    });
   }
 
   if (loader.type === 'Portal') {
+    // Same one-turn rule for the Portal: loading doesn't end the turn (see
+    // performLoad), it leaves the portal selected to eject or move this turn.
     return checkWinCondition(performLoad(loader, target.id, state));
   }
 
@@ -222,7 +232,17 @@ export function handleLaunchAbility(state: GameState, square: Square): GameState
   }
 
   if (launcher.type === 'Portal') {
-    return performEject(launcher, square, state);
+    // Only eject onto a highlighted square (getEjectTargets = adjacent + EMPTY).
+    // In eject mode every tap is an ABILITY_ACTION, so without this guard the
+    // piece could be dropped on an occupied square or the portal's own square.
+    const highlight = state.highlights.find(h => h.row === square.row && h.col === square.col);
+    if (!highlight) {
+      return { ...state, selectedSquare: null, highlights: [], abilityMode: { type: 'none' } };
+    }
+    // Both loading and unloading are free for the Portal — neither ends the
+    // turn; the portal's move does. So eject just relocates the piece and keeps
+    // the turn going (the portal stays selected to move).
+    return checkWinCondition(performEject(launcher, square, state));
   }
 
   return state;

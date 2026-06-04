@@ -60,7 +60,7 @@ describe('DeadLauncher', () => {
     expect(s2.abilityMode.type).toBe('loading');
   });
 
-  it('tap3: clicking adjacent pawn loads it', () => {
+  it('tap3: clicking adjacent pawn loads it without ending the turn', () => {
     const dl = makePiece('DeadLauncher', 'White', 0, 0);
     const pawn = makePiece('NecroPawn', 'White', 0, 1);
     const wk = makePiece('King', 'White', 0, 4);
@@ -72,7 +72,29 @@ describe('DeadLauncher', () => {
     const loader = s3.pieces.find(p => p.id === dl.id)!;
     expect(loader.pawnLoaded).toBe(true);
     expect(s3.pieces.find(p => p.id === pawn.id)).toBeUndefined();
-    expect(s3.currentTurn).toBe('Black');
+    // Loading is a free pre-action now: turn does NOT end, and the launcher
+    // stays selected so it can launch or move to finish the turn.
+    expect(s3.currentTurn).toBe('White');
+    expect(s3.abilityMode.type).toBe('none');
+    expect(s3.selectedSquare).toEqual({ row: 0, col: 0 });
+    expect(s3.highlights.length).toBeGreaterThan(0);
+  });
+
+  it('loads then launches on the same turn (load is free)', () => {
+    const dl = makePiece('DeadLauncher', 'White', 0, 0);
+    const pawn = makePiece('NecroPawn', 'White', 0, 1);
+    const enemy = makePiece('Pawn', 'Black', 3, 0); // launch range
+    const wk = makePiece('King', 'White', 0, 4);
+    const bk = makePiece('King', 'Black', 7, 7);
+    const state = makeState([dl, pawn, wk, bk, enemy]);
+
+    const s2 = selectAndSelfClick(state, 0, 0);     // → loading
+    const s3 = tap(s2, { row: 0, col: 1 });          // load pawn (turn continues)
+    const s4 = tap(s3, { row: 0, col: 0 });          // self-click → launch mode
+    expect(s4.abilityMode.type).toBe('launch');
+    const s5 = tap(s4, { row: 3, col: 0 });          // fire
+    expect(s5.pieces.find(p => p.id === enemy.id)).toBeUndefined();
+    expect(s5.currentTurn).toBe('Black');            // launching ends the turn
   });
 
   it('loaded launcher: self-click enters launch mode', () => {
