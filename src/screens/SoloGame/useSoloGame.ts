@@ -6,6 +6,7 @@ import { classifyAction } from '@/engine/helpers/classifyAction';
 import { createInitialState } from '@/engine/initialBoard';
 import { hasSelfClickAbility } from '@/engine/pieceTraits';
 import { chooseTurn, type Difficulty } from '@/ai/chooseTurn';
+import { humanRevivalPending, botDispatchCount } from './soloTurn';
 import { useReplayRecorder } from '@/screens/Game/useReplayRecorder';
 
 type Props = {
@@ -28,9 +29,15 @@ export function useSoloGame({ whiteArmy, blackArmy, difficulty, humanColor }: Pr
   const [thinking, setThinking] = useState(false);
   const aiBusy = useRef(false);
 
+  // The human must resolve their own QueenOfBones revival even when the bot
+  // captured it (mid-bot-turn) — so the bot pauses for it, and the human is
+  // allowed to tap during it.
+  const humanRevival = humanRevivalPending(state, humanColor);
+
   // The bot plays every side that isn't the human's, so humanColor=null means
-  // it drives both — the watch mode.
-  const botToMove = humanColor === null || state.currentTurn !== humanColor;
+  // it drives both — the watch mode. It never acts while a human revival is
+  // pending.
+  const botToMove = !humanRevival && (humanColor === null || state.currentTurn !== humanColor);
 
   // Drive the bot whenever it's a bot side's turn. chooseTurn computes the whole
   // turn as a deterministic tap-sequence; we dispatch the taps one at a time so
@@ -49,11 +56,15 @@ export function useSoloGame({ whiteArmy, blackArmy, difficulty, humanColor }: Pr
         setThinking(false);
         return;
       }
+      // If this turn captures the human's QueenOfBones, stop right after the
+      // capture so the human picks their own sacrifices (the bot's auto-resolved
+      // taps are dropped). Otherwise dispatch the whole turn.
+      const count = botDispatchCount(state, actions, humanColor);
       let i = 0;
       const step = () => {
         dispatch(actions[i]);
         i += 1;
-        if (i < actions.length) {
+        if (i < count) {
           setTimeout(step, STEP_MS);
         } else {
           aiBusy.current = false;
@@ -64,16 +75,18 @@ export function useSoloGame({ whiteArmy, blackArmy, difficulty, humanColor }: Pr
     }, THINK_DELAY_MS);
 
     return () => clearTimeout(think);
-  }, [state, difficulty, botToMove]);
+  }, [state, difficulty, botToMove, humanColor]);
 
-  // The human controls only their own color, and only on their turn.
+  // The human controls only their own color, on their turn — plus they always
+  // resolve their own QueenOfBones revival (which can pop during the bot's turn).
   const onSquarePress = useCallback(
     (square: Square) => {
       if (humanColor === null) return; // watch mode: board is read-only
-      if (state.currentTurn !== humanColor || state.status.type !== 'active') return;
+      if (state.status.type !== 'active') return;
+      if (!humanRevival && state.currentTurn !== humanColor) return;
       dispatch(classifyAction(square, state));
     },
-    [state, humanColor],
+    [state, humanColor, humanRevival],
   );
 
   const { canReplay, replayRequest, triggerReplay, resetReplay } = useReplayRecorder(state);

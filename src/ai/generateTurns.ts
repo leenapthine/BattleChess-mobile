@@ -51,8 +51,15 @@ export function generateTurns(root: GameState): Turn[] {
       // advance a turn and only widen the search.
       if (action.type === 'DESELECT') continue;
 
-      const next = gameReducer(node.state, action);
-      const actions = [...node.actions, action];
+      // A capture can trigger the defender's QueenOfBones revival, which drops
+      // the game into a sacrificeSelection sub-flow that doesn't end the turn —
+      // and which the move search otherwise can't navigate (it's the defender's
+      // pick, mid-attacker-turn). Auto-resolve it here so capturing an enemy QoB
+      // is an enumerable turn. Human play keeps the interactive prompt.
+      const { state: next, actions } = resolveRevival(
+        gameReducer(node.state, action),
+        [...node.actions, action],
+      );
 
       const turnOver = next.status.type === 'won' || next.currentTurn !== mover;
       if (turnOver) {
@@ -97,6 +104,32 @@ function candidateTaps(state: GameState, mover: Color): Square[] {
   return state.pieces
     .filter((p) => p.color === mover)
     .map((p) => ({ row: p.row, col: p.col }));
+}
+
+/**
+ * If `state` is mid-QueenOfBones-revival (sacrificeSelection), drive it to
+ * completion by sacrificing the first eligible pawns — appending those taps to
+ * `actions`. This is the defender's forced choice; the search resolves it
+ * automatically (the defender always revives if able) so a turn that captured
+ * an enemy QoB can finish. A guard caps the loop; if the queen can't actually
+ * revive (e.g. spawn blocked), the reducer exits the mode and the loop ends.
+ */
+function resolveRevival(
+  state: GameState,
+  actions: GameAction[],
+): { state: GameState; actions: GameAction[] } {
+  let s = state;
+  const out = [...actions];
+  let guard = 0;
+  while (s.abilityMode.type === 'sacrificeSelection' && guard < 4) {
+    guard += 1;
+    const pawn = s.highlights[0];
+    if (!pawn) break;
+    const action: GameAction = { type: 'ABILITY_ACTION', square: { row: pawn.row, col: pawn.col } };
+    s = gameReducer(s, action);
+    out.push(action);
+  }
+  return { state: s, actions: out };
 }
 
 function clearSelection(state: GameState): GameState {
