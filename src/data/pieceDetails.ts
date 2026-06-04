@@ -103,7 +103,8 @@ export const pieceDetails: Record<PieceType, string[]> = {
   ],
   BoulderThrower: [
     'Moves like a Rook but cannot capture by moving.',
-    'Throws a boulder to kill any enemy at exactly distance 3.',
+    'Boulder kills an enemy at distance 1 (point-blank stomp) or distance 3 (long lob).',
+    'Has a blind spot at distance 2 — it cannot hit the ring just outside melee.',
   ],
   FrogKing: [
     'Moves 1 tile in any direction like a King.',

@@ -25,7 +25,7 @@ export const pieceDescriptions: Record<PieceType, string> = {
   PawnHopper: 'Always moves 1-2 forward. Hop-captures by jumping over an adjacent enemy.',
   BeastKnight: 'Extended L-shape: 3+1 instead of 2+1. Jumps over pieces.',
   BeastDruid: 'Combines Bishop and King movement. Diagonal range plus 1-step any direction.',
-  BoulderThrower: 'Rook movement (no capture). Throws boulder to kill enemies at exact distance 3.',
+  BoulderThrower: 'Rook movement (no capture). Boulder kills an enemy at distance 1 (stomp) or 3 (lob) — blind spot at distance 2.',
   FrogKing: 'King movement plus 2-tile orthogonal hops that jump over pieces.',
   QueenOfDomination: 'Queen movement. Dominate an adjacent friendly — it moves as a Queen for one turn.',
 

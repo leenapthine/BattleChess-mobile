@@ -662,15 +662,16 @@ The beast faction combines raw physical power with unusual mobility.
 
 **Movement:** Unlimited orthogonal (Rook-style); **cannot stop on or capture via movement**
 
-**Special — Ranged Boulder (2-click, identical pattern to Beholder):**
-- **Click 2 (on self):** Enter boulder mode — Manhattan-distance-3 perimeter highlighted red
+**Special — Ranged Boulder ("donut + core" — distance 1 or 3, blind spot at 2):**
+- **Click 2 (on self):** Enter boulder mode — tiles at Manhattan distance **1 and 3** highlighted red (the distance-2 ring is NOT targetable)
 - **Click (red tile):** Fires boulder → removes enemy there; does NOT move the BoulderThrower; turn ends
 - **Visual effect:** a lumpy pixel-art `BoulderThrow` rock arcs from the thrower to the target, spinning as it flies (`boulder` effect)
 
+> **Balance note (2026-06-04):** the boulder used to hit **only** exactly distance 3, and the BoulderThrower can't capture by moving — so anything that reached distance 1–2 was completely safe from it (a DeadLauncher/Portal could load its blocking pawn, slide adjacent, capture, and sit immune). The boulder now also hits **distance 1** (a point-blank stomp), so an adjacent attacker is no longer safe. The **distance-2** ring remains a deliberate blind spot, preserving the unit's distinctive shape and a real approach lane. (Beholder is unchanged — it already covers distance 1–3.)
+
 **Edge Cases:**
 - Movement highlights are yellow; no red captures via movement
-- Boulder targets are the **exact** Manhattan-3 perimeter only (distance = 3, not ≤ 3) — 12 total positions around any point at distance 3
-- Note: Beholder uses a slightly different offset list that may include some distance-2 tiles; BoulderThrower's list appears to be strictly distance-3 only
+- Boulder targets are Manhattan distance **1 or 3** (not 2, not ≤ 3) — a "donut + core" ring
 - Stone pieces are immune to boulder capture
 - `isInBoulderMode` is shared with `Beholder` — same caveat about potential cross-contamination
 

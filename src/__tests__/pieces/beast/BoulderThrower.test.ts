@@ -56,16 +56,31 @@ describe('BoulderThrower', () => {
     expect(rangeHL.length).toBeGreaterThan(0);
   });
 
-  it('only targets at exactly manhattan distance 3', () => {
+  it('targets distance 1 and 3 but not 2 (donut + core)', () => {
     const bt = makePiece('BoulderThrower', 'White', 4, 4);
-    const close = makePiece('Pawn', 'Black', 4, 5);
-    const exact = makePiece('Pawn', 'Black', 4, 7);
-    const far = makePiece('Pawn', 'Black', 4, 0);
-    const targets = getAbilityTargets(bt, [bt, close, exact, far]);
+    const adjacent = makePiece('Pawn', 'Black', 4, 5); // distance 1 → stomp
+    const gap = makePiece('Pawn', 'Black', 4, 6);       // distance 2 → blind spot
+    const lob = makePiece('Pawn', 'Black', 4, 7);       // distance 3 → long throw
+    const far = makePiece('Pawn', 'Black', 4, 0);       // distance 4 → out of range
+    const targets = getAbilityTargets(bt, [bt, adjacent, gap, lob, far]);
     const coords = targets.map(t => `${t.row},${t.col}`);
-    expect(coords).toContain('4,7');
-    expect(coords).not.toContain('4,5');
-    expect(coords).not.toContain('4,0');
+    expect(coords).toContain('4,5'); // adjacent now reachable
+    expect(coords).toContain('4,7'); // long lob still reachable
+    expect(coords).not.toContain('4,6'); // distance-2 blind spot
+    expect(coords).not.toContain('4,0'); // distance 4 out of range
+  });
+
+  it('stomps an adjacent enemy (distance 1) — the close-range fix', () => {
+    const bt = makePiece('BoulderThrower', 'White', 4, 4);
+    const adjacent = makePiece('Pawn', 'Black', 4, 5);
+    const wk = makePiece('King', 'White', 0, 0);
+    const bk = makePiece('King', 'Black', 7, 7);
+    const state = makeState([bt, adjacent, wk, bk]);
+
+    const s2 = selectAndSelfClick(state, 4, 4);
+    const s3 = tap(s2, { row: 4, col: 5 });
+    expect(s3.pieces.find(p => p.id === adjacent.id)).toBeUndefined();
+    expect(s3.currentTurn).toBe('Black');
   });
 
   // --- Full tap flow tests ---
