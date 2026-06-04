@@ -133,7 +133,7 @@ describe('getSlotPieceType', () => {
 describe('getSlotCost', () => {
   it('returns guild-specific cost', () => {
     expect(getSlotCost(createDefaultArmy('Necro'), 0)).toBe(12);
-    expect(getSlotCost(createDefaultArmy('Demon'), 0)).toBe(20);
+    expect(getSlotCost(createDefaultArmy('Demon'), 0)).toBe(18); // Demon Rook
   });
 });
 
@@ -145,17 +145,17 @@ describe('canAffordSlot', () => {
   });
 
   it('returns true when budget covers cost', () => {
-    expect(canAffordSlot(createDefaultArmy('Beast'), 0, 16)).toBe(true);
+    expect(canAffordSlot(createDefaultArmy('Beast'), 0, 15)).toBe(true); // Beast Rook = 15
   });
 
   it('returns false when budget less than cost', () => {
-    expect(canAffordSlot(createDefaultArmy('Beast'), 0, 15)).toBe(false);
+    expect(canAffordSlot(createDefaultArmy('Beast'), 0, 14)).toBe(false); // < Beast Rook (15)
   });
 
   it('factors in already-spent points', () => {
     const army = createDefaultArmy('Necro');
     army.slots[0].upgraded = true; // spent 12
-    // Trying to upgrade Queen (28) with cap 30 → only 18 left
+    // Trying to upgrade Queen (31) with cap 30 → only 18 left, can't afford
     expect(canAffordSlot(army, 3, 30)).toBe(false);
   });
 });
