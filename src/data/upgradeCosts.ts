@@ -5,12 +5,16 @@ export const UPGRADE_COSTS: Record<Guild, Record<BasicRole, number>> = {
   // Self-play balancing (see sim-results/results.md):
   // - Iter 1 (2026-06-03): Necro Knight 18→16, Necro Queen 28→34,
   //   Beast Queen 30→32, Demon King 20→22.
-  // - Iter 2 (2026-06-04): Necro Queen 34→30, now that the revive-as-plain-Queen
-  //   nerf removed the near-immortality the price hike was compensating for.
-  Necro:  { Pawn: 8,  Knight: 16, Bishop: 10, Rook: 12, Queen: 30, King: 12 },
-  Demon:  { Pawn: 10, Knight: 26, Bishop: 20, Rook: 20, Queen: 32, King: 22 },
-  Beast:  { Pawn: 7,  Knight: 10, Bishop: 15, Rook: 16, Queen: 32, King: 18 },
-  Wizard: { Pawn: 7,  Knight: 12, Bishop: 16, Rook: 16, Queen: 26, King: 24 },
+  // - Iter 2 (2026-06-04): Necro Queen 34→30 (revive-as-plain-Queen nerf).
+  // - Iter 3 (2026-06-04): manual tuning pass —
+  //   Necro King 12→11, Queen 30→31, Knight 16→15;
+  //   Demon Queen 32→31, King 22→23, Knight 26→27, Rook 20→18;
+  //   Beast King 18→17, Rook 16→15, Queen 32→33;
+  //   Wizard Queen 26→25, King 24→25.
+  Necro:  { Pawn: 8,  Knight: 15, Bishop: 10, Rook: 12, Queen: 31, King: 11 },
+  Demon:  { Pawn: 10, Knight: 27, Bishop: 20, Rook: 18, Queen: 31, King: 23 },
+  Beast:  { Pawn: 7,  Knight: 10, Bishop: 15, Rook: 15, Queen: 33, King: 17 },
+  Wizard: { Pawn: 7,  Knight: 12, Bishop: 16, Rook: 16, Queen: 25, King: 25 },
 };
 
 export const GUILD_PIECES: Record<Guild, Record<BasicRole, PieceType>> = {

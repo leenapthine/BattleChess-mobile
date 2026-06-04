@@ -18,25 +18,25 @@ describe('UPGRADE_COSTS', () => {
 
   it('Necro costs match spec', () => {
     expect(UPGRADE_COSTS.Necro).toEqual({
-      Pawn: 8, Knight: 16, Bishop: 10, Rook: 12, Queen: 30, King: 12,
+      Pawn: 8, Knight: 15, Bishop: 10, Rook: 12, Queen: 31, King: 11,
     });
   });
 
   it('Demon costs match spec', () => {
     expect(UPGRADE_COSTS.Demon).toEqual({
-      Pawn: 10, Knight: 26, Bishop: 20, Rook: 20, Queen: 32, King: 22,
+      Pawn: 10, Knight: 27, Bishop: 20, Rook: 18, Queen: 31, King: 23,
     });
   });
 
   it('Beast costs match spec', () => {
     expect(UPGRADE_COSTS.Beast).toEqual({
-      Pawn: 7, Knight: 10, Bishop: 15, Rook: 16, Queen: 32, King: 18,
+      Pawn: 7, Knight: 10, Bishop: 15, Rook: 15, Queen: 33, King: 17,
     });
   });
 
   it('Wizard costs match spec', () => {
     expect(UPGRADE_COSTS.Wizard).toEqual({
-      Pawn: 7, Knight: 12, Bishop: 16, Rook: 16, Queen: 26, King: 24,
+      Pawn: 7, Knight: 12, Bishop: 16, Rook: 16, Queen: 25, King: 25,
     });
   });
 });

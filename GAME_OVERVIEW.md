@@ -137,13 +137,13 @@ Each slot is either basic (no points spent) or upgraded to the guild equivalent.
 | Pawn → | Necro | Demon | Beast | Wizard |
 |---|---|---|---|---|
 | Pawn upgrade | 8 (NecroPawn) | 10 (HellPawn) | 7 (PawnHopper) | 7 (YoungWiz) |
-| Knight upgrade | 16 (GhostKnight) | 26 (Prowler) | 10 (BeastKnight) | 12 (Familiar) |
+| Knight upgrade | 15 (GhostKnight) | 27 (Prowler) | 10 (BeastKnight) | 12 (Familiar) |
 | Bishop upgrade | 10 (Necromancer) | 20 (Howler) | 15 (BeastDruid) | 16 (WizardTower) |
-| Rook upgrade | 12 (DeadLauncher) | 20 (Beholder) | 16 (BoulderThrower) | 16 (Portal) |
-| Queen upgrade | 30 (QueenOfBones) | 32 (QueenOfDestruction) | 32 (QueenOfDomination) | 26 (QueenOfIllusions) |
-| King upgrade | 12 (GhoulKing) | 22 (HellKing) | 18 (FrogKing) | 24 (WizardKing) |
+| Rook upgrade | 12 (DeadLauncher) | 18 (Beholder) | 15 (BoulderThrower) | 16 (Portal) |
+| Queen upgrade | 31 (QueenOfBones) | 31 (QueenOfDestruction) | 33 (QueenOfDomination) | 25 (QueenOfIllusions) |
+| King upgrade | 11 (GhoulKing) | 23 (HellKing) | 17 (FrogKing) | 25 (WizardKing) |
 
-> Costs are tuned from self-play (`sim-results/results.md`). Iter 1 (2026-06-03) raised Necro/Beast Queens and Demon King, lowered Necro Knight. Iter 2 (2026-06-04) dropped the Necro Queen 34→30 after her revive-as-plain-Queen nerf.
+> Costs are tuned from self-play (`sim-results/results.md`) plus manual judgment. Iter 1 (2026-06-03) raised Necro/Beast Queens and Demon King, lowered Necro Knight. Iter 2 (2026-06-04) dropped the Necro Queen after her revive nerf. Iter 3 (2026-06-04) manual pass across all four guilds (see `upgradeCosts.ts`).
 
 ---
 
