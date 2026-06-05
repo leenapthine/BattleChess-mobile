@@ -82,3 +82,15 @@ the screen it touches and screenshot the result.
 - JS/TS change after a build exists → no rebuild; just reload Metro.
 - Native/config change (new native dep, `app.json`, Podfile) → rebuild via step 4.
 - UDID is machine-specific — always discover it (step 3), never hardcode.
+
+## Troubleshooting
+
+- **`No development build (com.leenapthine.battlechess) ... is installed`** (after
+  `expo start` + press `i`): the dev client just isn't on that simulator (fresh
+  sim, wiped device, or first build at this path). Fix = build it via step 4.
+- **Build fails at `[Expo] Configure project` (xcodebuild error 65)** *after the
+  project folder was moved/renamed*: the generated CocoaPods build scripts under
+  `ios/Pods/Target Support Files/` have the **old absolute path baked in** (look for
+  a stale path in `expo-configure-project.sh`). Regenerate them:
+  `pod install --project-directory=ios` (or the heavier `npx expo prebuild --clean`),
+  then rebuild. Not a Node-version problem even if Node looks suspicious in the log.
