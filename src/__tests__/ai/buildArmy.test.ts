@@ -1,11 +1,11 @@
-import { buildAIArmy, spendByPriority, ARCHETYPES } from '@/ai/buildArmy';
+import { randomAIArmy, spendByPriority, ARCHETYPES } from '@/ai/buildArmy';
 import { calculatePointsSpent } from '@/screens/ArmyBuilder/armyLogic';
-import { createDefaultArmy } from '@/types/army';
 import { UPGRADE_COSTS } from '@/data/upgradeCosts';
+import type { ArmyConfig } from '@/types/army';
 
 // Leftover budget is smaller than the cheapest upgrade still available — i.e.
 // the builder didn't leave points it could have spent.
-function leavesNoAffordableUpgrade(army: ReturnType<typeof buildAIArmy>, pointCap: number) {
+function leavesNoAffordableUpgrade(army: ArmyConfig, pointCap: number) {
   const costs = UPGRADE_COSTS[army.guild];
   const remaining = pointCap - calculatePointsSpent(army);
   const cheapestUnbought = Math.min(
@@ -16,28 +16,29 @@ function leavesNoAffordableUpgrade(army: ReturnType<typeof buildAIArmy>, pointCa
 }
 
 describe('army builder', () => {
-  it('mirrors the human guild and never overspends', () => {
-    const human = createDefaultArmy('Necro');
-    for (let i = 0; i < 20; i++) {
-      const army = buildAIArmy(human, 60);
-      expect(army.guild).toBe('Necro');
+  it('randomAIArmy varies the guild (does not mirror) and never overspends', () => {
+    const guilds = new Set<string>();
+    for (let i = 0; i < 40; i++) {
+      const army = randomAIArmy(60);
+      guilds.add(army.guild);
       expect(army.slots).toHaveLength(16);
       expect(calculatePointsSpent(army)).toBeLessThanOrEqual(60);
     }
+    // Over 40 rolls it should pick more than one of the four guilds.
+    expect(guilds.size).toBeGreaterThan(1);
   });
 
   it('spends the points it is given (no free upgrades at cap 0)', () => {
-    const army = buildAIArmy(createDefaultArmy('Wizard'), 0);
+    const army = randomAIArmy(0);
     expect(calculatePointsSpent(army)).toBe(0);
     expect(army.slots.every((s) => !s.upgraded)).toBe(true);
   });
 
   it('spends the budget fully (no affordable upgrade left unbought)', () => {
-    // True across archetypes and caps — even 'elite', which buys few pricey
+    // True across guilds/archetypes — even 'elite', which buys few pricey
     // pieces, must mop up the remainder on cheaper ones.
-    for (let i = 0; i < 20; i++) {
-      const army = buildAIArmy(createDefaultArmy('Beast'), 120);
-      expect(leavesNoAffordableUpgrade(army, 120)).toBe(true);
+    for (let i = 0; i < 40; i++) {
+      expect(leavesNoAffordableUpgrade(randomAIArmy(120), 120)).toBe(true);
     }
   });
 
@@ -54,8 +55,8 @@ describe('army builder', () => {
     for (const name of ARCHETYPES) {
       expect(typeof name).toBe('string');
     }
-    // (spend correctness for each archetype is covered via buildAIArmy's
-    // random archetype pick across the 20 iterations above.)
+    // (spend correctness for each archetype is covered via randomAIArmy's
+    // random archetype pick across the iterations above.)
     expect(ARCHETYPES.length).toBeGreaterThanOrEqual(4);
   });
 });

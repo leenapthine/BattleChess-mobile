@@ -2,7 +2,7 @@ import { SafeAreaView, StyleSheet, ActivityIndicator, View, Alert } from 'react-
 import { useEffect, useState } from 'react';
 import { useFonts, SpaceMono_400Regular, SpaceMono_700Bold } from '@expo-google-fonts/space-mono';
 import type { ArmyConfig } from '@/types/army';
-import { buildAIArmy, randomAIArmy } from '@/ai/buildArmy';
+import { randomAIArmy } from '@/ai/buildArmy';
 import { DIFFICULTIES } from '@/ai/chooseTurn';
 import { TitleScreen } from '@/screens/Title';
 import { LobbyScreen } from '@/screens/Lobby';
@@ -252,9 +252,9 @@ export default function App() {
               ? goTo({
                   type: 'solo',
                   humanArmy: army,
-                  // The AI builds after the human: mirror the guild, pick a
-                  // random archetype, and spend the same point budget.
-                  aiArmy: buildAIArmy(army, screen.pointCap),
+                  // The AI fields its OWN race — a random guild + archetype at
+                  // the same budget (it no longer mirrors the human's guild).
+                  aiArmy: randomAIArmy(screen.pointCap),
                   difficulty: DIFFICULTIES.normal,
                 })
               : goTo({

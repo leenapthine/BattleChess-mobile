@@ -57,18 +57,9 @@ export function spendByPriority(
   return { ...base, slots };
 }
 
-/**
- * Build the AI's army for a solo game. Because the AI builds *after* the human,
- * it mirrors the human's guild (a fair, comprehensible matchup) and picks a
- * random archetype for variety, spending the same point budget.
- */
-export function buildAIArmy(humanArmy: ArmyConfig, pointCap: number): ArmyConfig {
-  const archetype = ARCHETYPES[Math.floor(Math.random() * ARCHETYPES.length)];
-  return spendByPriority(humanArmy.guild, pointCap, PRIORITIES[archetype]);
-}
-
 /** A fully self-chosen AI army: random guild + random archetype, full budget.
- *  Used for AI-vs-AI watch games where there's no human army to mirror. */
+ *  Used for both solo (the AI fields its OWN race, not the human's) and AI-vs-AI
+ *  watch games. */
 export function randomAIArmy(pointCap: number): ArmyConfig {
   const guild: Guild = GUILDS[Math.floor(Math.random() * GUILDS.length)];
   const archetype = ARCHETYPES[Math.floor(Math.random() * ARCHETYPES.length)];
