@@ -5,12 +5,22 @@ import { evaluate, materialScore, terminalWinner, WIN_SCORE, type EvalFn } from 
 export type Difficulty = {
   // How many plies (half-moves) to search. 1 = greedy (grab the best
   // immediate position); 2 = also account for the opponent's best reply.
+  // (depth 3 is ~15s/move — too slow for interactive play.)
   depth: number;
+  // Chance per turn of playing a *random* legal move instead of the best one,
+  // so the easiest level makes beginner mistakes. 0/undefined = always best.
+  blunder?: number;
 };
 
-export const DIFFICULTIES: Record<'easy' | 'normal', Difficulty> = {
-  easy: { depth: 1 },
-  normal: { depth: 2 },
+export type DifficultyLevel = 'easy' | 'medium' | 'hard';
+
+// Only depth 1 and 2 are viable interactively, and depth 2 dominates depth 1
+// (~97% in self-play), so the spread is: easy = greedy + frequent blunders,
+// medium = clean greedy (depth 1), hard = full 2-ply search.
+export const DIFFICULTIES: Record<DifficultyLevel, Difficulty> = {
+  easy: { depth: 1, blunder: 0.35 },
+  medium: { depth: 1 },
+  hard: { depth: 2 },
 };
 
 /**
@@ -26,6 +36,11 @@ export function chooseTurn(
   const mover = state.currentTurn;
   const turns = generateTurns(state);
   if (turns.length === 0) return null;
+
+  // Easy levels occasionally throw the turn away on a random legal move.
+  if (difficulty.blunder && Math.random() < difficulty.blunder) {
+    return turns[Math.floor(Math.random() * turns.length)].actions;
+  }
 
   // Order by immediate material so alpha-beta prunes hard, and so depth-1
   // (greedy) is effectively a sorted pick.

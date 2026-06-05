@@ -24,7 +24,7 @@ describe('chooseTurn', () => {
       { currentTurn: 'White' },
     );
 
-    const actions = chooseTurn(state, DIFFICULTIES.easy);
+    const actions = chooseTurn(state, DIFFICULTIES.medium);
     expect(actions).not.toBeNull();
     const after = applyTurn(state, actions);
     expect(after.pieces.some((p) => p.type === 'Queen' && p.color === 'Black')).toBe(false);
@@ -44,7 +44,7 @@ describe('chooseTurn', () => {
       { currentTurn: 'White' },
     );
 
-    const after = applyTurn(state, chooseTurn(state, DIFFICULTIES.normal));
+    const after = applyTurn(state, chooseTurn(state, DIFFICULTIES.hard));
     // White king survives — the bot didn't blow itself up.
     expect(after.pieces.some((p) => p.type === 'King' && p.color === 'White')).toBe(true);
   });
@@ -54,7 +54,7 @@ describe('chooseTurn', () => {
     const state = makeState([makePiece('King', 'White', 0, 0)], {
       status: { type: 'won', winner: 'Black' },
     });
-    expect(chooseTurn(state, DIFFICULTIES.normal)).toBeNull();
+    expect(chooseTurn(state, DIFFICULTIES.hard)).toBeNull();
   });
 
   it('looks ahead and declines a defended pawn (depth 2)', () => {
@@ -73,8 +73,35 @@ describe('chooseTurn', () => {
       { currentTurn: 'White' },
     );
 
-    const after = applyTurn(state, chooseTurn(state, DIFFICULTIES.normal));
+    const after = applyTurn(state, chooseTurn(state, DIFFICULTIES.hard));
     // The pawn survives — the bot didn't take the poisoned capture.
     expect(after.pieces.some((p) => p.type === 'Pawn' && p.color === 'Black')).toBe(true);
+  });
+
+  it('the three difficulty tiers are wired (easy blunders, hard searches)', () => {
+    expect(DIFFICULTIES.easy.depth).toBe(1);
+    expect(DIFFICULTIES.easy.blunder).toBeGreaterThan(0);
+    expect(DIFFICULTIES.medium.depth).toBe(1);
+    expect(DIFFICULTIES.medium.blunder).toBeUndefined();
+    expect(DIFFICULTIES.hard.depth).toBe(2);
+  });
+
+  it('a guaranteed-blunder difficulty still returns a legal turn', () => {
+    resetIds();
+    const state = makeState(
+      [
+        makePiece('Rook', 'White', 0, 0),
+        makePiece('King', 'White', 7, 0),
+        makePiece('Queen', 'Black', 0, 5),
+        makePiece('King', 'Black', 7, 7),
+      ],
+      { currentTurn: 'White' },
+    );
+    // blunder: 1 → always a random legal move; it must still be a valid turn.
+    const actions = chooseTurn(state, { depth: 1, blunder: 1 });
+    expect(actions).not.toBeNull();
+    expect(actions![0].type).toBe('SELECT_SQUARE');
+    // And applying it is legal (turn passes to Black).
+    expect(applyTurn(state, actions).currentTurn).toBe('Black');
   });
 });

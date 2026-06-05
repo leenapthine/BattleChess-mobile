@@ -1,6 +1,7 @@
 import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useState } from 'react';
 import { COLORS, FONT } from '@/constants/theme';
+import type { DifficultyLevel } from '@/ai/chooseTurn';
 
 type TimerOption = { label: string; seconds: number | null };
 
@@ -13,13 +14,21 @@ const TIMER_OPTIONS: TimerOption[] = [
   { label: '60m', seconds: 3600 },
 ];
 
+const DIFFICULTY_OPTIONS: { label: string; level: DifficultyLevel }[] = [
+  { label: 'EASY',   level: 'easy' },
+  { label: 'MEDIUM', level: 'medium' },
+  { label: 'HARD',   level: 'hard' },
+];
+
 type Props = {
-  onStart: (pointCap: number, timePerTurnSeconds: number | null) => void;
+  mode: 'local' | 'online' | 'solo';
+  onStart: (pointCap: number, timePerTurnSeconds: number | null, difficulty: DifficultyLevel) => void;
 };
 
-export function PointCapScreen({ onStart }: Props) {
+export function PointCapScreen({ mode, onStart }: Props) {
   const [value, setValue] = useState('100');
   const [timerSeconds, setTimerSeconds] = useState<number | null>(null);
+  const [difficulty, setDifficulty] = useState<DifficultyLevel>('hard');
 
   const points = parseInt(value, 10) || 0;
 
@@ -59,9 +68,28 @@ export function PointCapScreen({ onStart }: Props) {
           ))}
         </View>
 
+        {mode === 'solo' && (
+          <>
+            <Text style={styles.subtitle}>DIFFICULTY</Text>
+            <View style={styles.timerRow}>
+              {DIFFICULTY_OPTIONS.map(opt => (
+                <Pressable
+                  key={opt.level}
+                  style={[styles.timerBtn, difficulty === opt.level && styles.timerBtnActive]}
+                  onPress={() => setDifficulty(opt.level)}
+                >
+                  <Text style={[styles.timerLabel, difficulty === opt.level && styles.timerLabelActive]}>
+                    {opt.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </>
+        )}
+
         <Pressable
           style={[styles.button, points <= 0 && styles.buttonDisabled]}
-          onPress={() => points > 0 && onStart(points, timerSeconds)}
+          onPress={() => points > 0 && onStart(points, timerSeconds, difficulty)}
           disabled={points <= 0}
         >
           <Text style={styles.buttonText}>START</Text>

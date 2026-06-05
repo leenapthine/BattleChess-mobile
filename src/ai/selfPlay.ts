@@ -31,7 +31,7 @@ export function playGame(
   blackArmy: ArmyConfig,
   opts: PlayOptions = {},
 ): GameOutcome {
-  const difficulty = opts.difficulty ?? DIFFICULTIES.easy;
+  const difficulty = opts.difficulty ?? DIFFICULTIES.medium;
   const maxPlies = opts.maxPlies ?? 200;
 
   let state = createInitialState(whiteArmy, blackArmy);

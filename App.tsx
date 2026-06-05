@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useFonts, SpaceMono_400Regular, SpaceMono_700Bold } from '@expo-google-fonts/space-mono';
 import type { ArmyConfig } from '@/types/army';
 import { randomAIArmy } from '@/ai/buildArmy';
-import { DIFFICULTIES } from '@/ai/chooseTurn';
+import { DIFFICULTIES, type DifficultyLevel } from '@/ai/chooseTurn';
 import { TitleScreen } from '@/screens/Title';
 import { LobbyScreen } from '@/screens/Lobby';
 import { PointCapScreen } from '@/screens/PointCap';
@@ -164,10 +164,18 @@ export default function App() {
     );
   }
 
-  const handlePointCapSubmit = async (pointCap: number, timePerTurnSeconds: number | null) => {
+  const handlePointCapSubmit = async (
+    pointCap: number,
+    timePerTurnSeconds: number | null,
+    difficulty: DifficultyLevel,
+  ) => {
     if (screen.type !== 'pointCap') return;
     if (screen.mode === 'local' || screen.mode === 'solo') {
-      goTo({ type: 'armyBuilder', player: 1, pointCap, timePerTurnSeconds, vsAI: screen.mode === 'solo' });
+      goTo({
+        type: 'armyBuilder', player: 1, pointCap, timePerTurnSeconds,
+        vsAI: screen.mode === 'solo',
+        difficulty: screen.mode === 'solo' ? difficulty : undefined,
+      });
     } else {
       if (!userId || !profile) return;
       try {
@@ -221,7 +229,7 @@ export default function App() {
               type: 'watch',
               whiteArmy: randomAIArmy(60),
               blackArmy: randomAIArmy(60),
-              difficulty: DIFFICULTIES.normal,
+              difficulty: DIFFICULTIES.hard,
             })
           }
           onCreateOnline={() => goTo({ type: 'pointCap', mode: 'online' })}
@@ -231,7 +239,7 @@ export default function App() {
         />
       )}
       {screen.type === 'pointCap' && (
-        <PointCapScreen onStart={handlePointCapSubmit} />
+        <PointCapScreen mode={screen.mode} onStart={handlePointCapSubmit} />
       )}
       {screen.type === 'waitingRoom' && currentGame && (
         <WaitingRoomScreen
@@ -255,7 +263,7 @@ export default function App() {
                   // The AI fields its OWN race — a random guild + archetype at
                   // the same budget (it no longer mirrors the human's guild).
                   aiArmy: randomAIArmy(screen.pointCap),
-                  difficulty: DIFFICULTIES.normal,
+                  difficulty: DIFFICULTIES[screen.difficulty ?? 'hard'],
                 })
               : goTo({
                   type: 'handoff',

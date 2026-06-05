@@ -32,7 +32,7 @@ describe('projectile ability use', () => {
     expect(abilityTurns.length).toBeGreaterThan(0);
 
     // ...and the bot chooses to fire (only way to take the pawn):
-    const after = applyTurn(state, chooseTurn(state, DIFFICULTIES.normal));
+    const after = applyTurn(state, chooseTurn(state, DIFFICULTIES.hard));
     expect(after.pieces.some((p) => p.type === 'Pawn' && p.color === 'Black')).toBe(false);
   });
 
@@ -48,7 +48,7 @@ describe('projectile ability use', () => {
       { currentTurn: 'White' },
     );
 
-    const after = applyTurn(state, chooseTurn(state, DIFFICULTIES.normal));
+    const after = applyTurn(state, chooseTurn(state, DIFFICULTIES.hard));
     expect(after.pieces.some((p) => p.type === 'Knight' && p.color === 'Black')).toBe(false);
   });
 
@@ -73,7 +73,7 @@ describe('projectile ability use', () => {
       { currentTurn: 'White' },
     );
 
-    const after = applyTurn(state, chooseTurn(state, DIFFICULTIES.normal));
+    const after = applyTurn(state, chooseTurn(state, DIFFICULTIES.hard));
     expect(after.pieces.some((p) => p.type === 'Rook' && p.color === 'Black')).toBe(false);
   });
 });

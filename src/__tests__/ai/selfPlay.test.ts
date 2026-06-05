@@ -6,7 +6,7 @@ import { DIFFICULTIES } from '@/ai/chooseTurn';
 describe('self-play harness', () => {
   it('plays a full game to a terminal state within the ply cap', () => {
     const out = playGame(createDefaultArmy('Necro'), createDefaultArmy('Wizard'), {
-      difficulty: DIFFICULTIES.easy,
+      difficulty: DIFFICULTIES.medium,
       maxPlies: 120,
     });
     expect(out.plies).toBeLessThanOrEqual(120);
