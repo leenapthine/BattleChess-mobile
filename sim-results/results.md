@@ -197,3 +197,95 @@ Balance report — Wizard   (score% by upgraded unit; ~50% = fairly priced)
   Queen   cost  26   47.5%  n= 315  → ok
   King    cost  24   54.8%  n= 314  → ok
 ```
+
+## 2026-06-04T16:30:53.308Z
+
+params: games=150, cap=20–110 (random/game), depth=2, maxPlies=160
+
+```
+Archetype ranking — Necro
+  ranged     54.5%  (750 games)
+  defensive  54.2%  (750 games)
+  elite      49.0%  (750 games)
+  balanced   48.6%  (750 games)
+  swarm      48.0%  (750 games)
+  vanguard   45.7%  (750 games)
+
+Balance report — Necro   (score% by upgraded unit; ~50% = fairly priced)
+  Pawn    cost   8   50.0%  n=1145  → ok
+            by count: ×1 49%(160)  ×2 50%(259)  ×3 48%(265)  ×4 51%(207)  ×5 55%(153)  ×6 49%(69)  ×7 45%(30)
+  Knight  cost  15   49.2%  n= 645  → ok
+            by count: ×1 50%(496)  ×2 47%(149)
+  Bishop  cost  10   49.1%  n= 687  → ok
+            by count: ×1 47%(518)  ×2 56%(169)
+  Rook    cost  12   50.1%  n= 681  → ok
+            by count: ×1 50%(515)  ×2 52%(166)
+  Queen   cost  31   50.7%  n= 307  → ok
+  King    cost  11   48.8%  n= 402  → ok
+```
+
+```
+Archetype ranking — Demon
+  defensive  56.7%  (750 games)
+  swarm      52.1%  (750 games)
+  vanguard   51.7%  (750 games)
+  ranged     50.5%  (750 games)
+  balanced   45.0%  (750 games)
+  elite      44.0%  (750 games)
+
+Balance report — Demon   (score% by upgraded unit; ~50% = fairly priced)
+  Pawn    cost  10   49.3%  n=1056  → ok
+            by count: ×1 50%(223)  ×2 47%(370)  ×3 51%(236)  ×4 53%(140)  ×5 48%(59)  ×6 50%(25)
+  Knight  cost  27   51.5%  n= 423  → ok
+            by count: ×1 51%(386)  ×2 54%(37)
+  Bishop  cost  20   51.2%  n= 467  → ok
+            by count: ×1 52%(418)  ×2 48%(49)
+  Rook    cost  18   51.1%  n= 502  → ok
+            by count: ×1 52%(436)  ×2 48%(66)
+  Queen   cost  31   42.8%  n= 201  → lower cost
+  King    cost  23   53.0%  n= 247  → ok
+```
+
+```
+Archetype ranking — Beast
+  balanced   57.1%  (750 games)
+  elite      56.7%  (750 games)
+  vanguard   53.5%  (750 games)
+  defensive  48.3%  (750 games)
+  ranged     45.9%  (750 games)
+  swarm      38.6%  (750 games)
+
+Balance report — Beast   (score% by upgraded unit; ~50% = fairly priced)
+  Pawn    cost   7   50.1%  n=1150  → ok
+            by count: ×1 55%(167)  ×2 54%(225)  ×3 48%(254)  ×4 52%(200)  ×5 46%(169)  ×6 39%(84)  ×7 57%(41)
+  Knight  cost  10   48.2%  n= 691  → ok
+            by count: ×1 50%(518)  ×2 43%(173)
+  Bishop  cost  15   49.9%  n= 703  → ok
+            by count: ×1 50%(556)  ×2 50%(147)
+  Rook    cost  15   48.8%  n= 663  → ok
+            by count: ×1 50%(541)  ×2 43%(122)
+  Queen   cost  33   56.8%  n= 292  → raise cost
+  King    cost  17   53.0%  n= 383  → ok
+```
+
+```
+Archetype ranking — Wizard
+  swarm      55.6%  (750 games)
+  vanguard   53.4%  (750 games)
+  balanced   50.2%  (750 games)
+  elite      49.2%  (750 games)
+  defensive  49.2%  (750 games)
+  ranged     42.4%  (750 games)
+
+Balance report — Wizard   (score% by upgraded unit; ~50% = fairly priced)
+  Pawn    cost   7   50.5%  n=1146  → ok
+            by count: ×1 47%(177)  ×2 47%(195)  ×3 54%(255)  ×4 51%(232)  ×5 54%(157)  ×6 49%(95)  ×7 44%(27)
+  Knight  cost  12   50.2%  n= 691  → ok
+            by count: ×1 50%(507)  ×2 51%(184)
+  Bishop  cost  16   48.4%  n= 618  → ok
+            by count: ×1 48%(518)  ×2 49%(100)
+  Rook    cost  16   48.8%  n= 649  → ok
+            by count: ×1 50%(532)  ×2 43%(117)
+  Queen   cost  25   49.2%  n= 299  → ok
+  King    cost  25   52.5%  n= 322  → ok
+```

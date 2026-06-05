@@ -52,8 +52,8 @@ describe('toggleSlotAt', () => {
 
   it('rejects upgrade if unaffordable', () => {
     const army = createDefaultArmy('Demon');
-    // Queen costs 32 in Demon
-    const next = toggleSlotAt(army, 3, 30);
+    // Demon Queen costs 29; budget 28 can't afford it
+    const next = toggleSlotAt(army, 3, 28);
     expect(next.slots[3].upgraded).toBe(false);
     expect(next).toBe(army);
   });

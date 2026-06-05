@@ -140,10 +140,10 @@ Each slot is either basic (no points spent) or upgraded to the guild equivalent.
 | Knight upgrade | 15 (GhostKnight) | 27 (Prowler) | 10 (BeastKnight) | 12 (Familiar) |
 | Bishop upgrade | 10 (Necromancer) | 20 (Howler) | 15 (BeastDruid) | 16 (WizardTower) |
 | Rook upgrade | 12 (DeadLauncher) | 18 (Beholder) | 15 (BoulderThrower) | 16 (Portal) |
-| Queen upgrade | 31 (QueenOfBones) | 31 (QueenOfDestruction) | 33 (QueenOfDomination) | 25 (QueenOfIllusions) |
-| King upgrade | 11 (GhoulKing) | 23 (HellKing) | 17 (FrogKing) | 25 (WizardKing) |
+| Queen upgrade | 31 (QueenOfBones) | 29 (QueenOfDestruction) | 35 (QueenOfDomination) | 25 (QueenOfIllusions) |
+| King upgrade | 10 (GhoulKing) | 23 (HellKing) | 17 (FrogKing) | 25 (WizardKing) |
 
-> Costs are tuned from self-play (`sim-results/results.md`) plus manual judgment. Iter 1 (2026-06-03) raised Necro/Beast Queens and Demon King, lowered Necro Knight. Iter 2 (2026-06-04) dropped the Necro Queen after her revive nerf. Iter 3 (2026-06-04) manual pass across all four guilds (see `upgradeCosts.ts`).
+> Costs are tuned from self-play (`sim-results/results.md`) plus manual judgment; see `upgradeCosts.ts` for the per-iteration log. Iter 4 (2026-06-04) is the first pass with the QueenOfBones-capture bug fixed — once the AI could actually take a QoB its win rate fell from ~80% to ~50%, and Necro fell into balance. Remaining nudges: Beast Queen up (genuinely strong), Demon Queen down (now underperforms).
 
 ---
 

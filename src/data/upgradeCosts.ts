@@ -11,9 +11,13 @@ export const UPGRADE_COSTS: Record<Guild, Record<BasicRole, number>> = {
   //   Demon Queen 32→31, King 22→23, Knight 26→27, Rook 20→18;
   //   Beast King 18→17, Rook 16→15, Queen 32→33;
   //   Wizard Queen 26→25, King 24→25.
-  Necro:  { Pawn: 8,  Knight: 15, Bishop: 10, Rook: 12, Queen: 31, King: 11 },
-  Demon:  { Pawn: 10, Knight: 27, Bishop: 20, Rook: 18, Queen: 31, King: 23 },
-  Beast:  { Pawn: 7,  Knight: 10, Bishop: 15, Rook: 15, Queen: 33, King: 17 },
+  // - Iter 4 (2026-06-04): first pass with the QueenOfBones-capture bug fixed
+  //   (the AI can finally take a QoB, so its 80% artifact collapsed to ~50%).
+  //   Necro King 11→10; Beast Queen 33→35 (genuinely strong, 56.8%);
+  //   Demon Queen 31→29 (now underperforms at 42.8%).
+  Necro:  { Pawn: 8,  Knight: 15, Bishop: 10, Rook: 12, Queen: 31, King: 10 },
+  Demon:  { Pawn: 10, Knight: 27, Bishop: 20, Rook: 18, Queen: 29, King: 23 },
+  Beast:  { Pawn: 7,  Knight: 10, Bishop: 15, Rook: 15, Queen: 35, King: 17 },
   Wizard: { Pawn: 7,  Knight: 12, Bishop: 16, Rook: 16, Queen: 25, King: 25 },
 };
 
