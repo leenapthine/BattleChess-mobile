@@ -126,3 +126,39 @@ hand-tuning, the data says there's no juice left in the cheap levers. If a
 *genuinely strong* AI is itself the goal, **L1 is the right project**: financially
 trivial, a real ~3-week engineering commitment, and the pure engine + harness +
 `evalFn` hook mean most of the usual setup pain is already handled.
+
+## 9. Compute setup — the Raspberry Pi self-play farm
+
+A 3-Pi cluster (or any always-on CPUs you own) fits **one** phase of L1: generating
+self-play *data*. It does **not** fit the others — so split the work by hardware:
+
+| Phase | Hardware | Why |
+|---|---|---|
+| **Self-play data generation** | **Raspberry Pis** ✅ | Pure CPU, embarrassingly parallel, Node runs on ARM. Always-on + low-power + doesn't tie up your main machine. |
+| **Training the net** | **Free Colab / a gaming GPU** | Pis have no usable ML GPU (VideoCore ≠ CUDA); 3 weak ARM nodes don't combine into a useful training job — the network overhead dominates. A free T4 crushes them. |
+| **Inference (playing)** | **The phone** | Runs in-app via the `evalFn` hook; the Pis are irrelevant here. |
+
+**Reality check:** a Pi 5 core is ~1/5–1/8 of a modern laptop core, so 3 Pis ≈ a
+modest amount of extra CPU — your Mac alone might out-generate all three. Their
+value is *"free, always-on compute I already own,"* not raw speed. Don't try to
+train on them, and don't build a distributed *training* cluster (not worth it at
+this scale).
+
+**Make the data-gen script cluster-friendly from day one** so the farm is plug-and-play:
+- Each Pi runs **N worker processes** (one per core) playing independent self-play
+  games — reuse `playGame` from `src/ai/selfPlay.ts`, no shared state needed.
+- Each worker writes **sharded output files** (e.g. `data/<host>-<pid>-<seq>.jsonl`,
+  one `(encoded position, outcome)` per line) to a **shared folder** (NFS mount, or
+  just `rsync`/`scp` to the training box).
+- The **training box simply reads the whole pile** of shards — no coordinator, no
+  message passing. Pis can join/leave freely; throughput just scales with however
+  many workers are alive.
+- Seed each worker's RNG differently (host+pid) so games don't duplicate, and roll
+  a **random point cap per game** (as the balance harness already does) so the data
+  spans budgets.
+- Keep the encoder (`GameState → tensor`) on the **training** side, or run it on the
+  Pis to ship smaller files — either works; shipping raw game records is simplest
+  and keeps the Pis dumb.
+
+This same farm doubles as a **balance-sweep cluster** — point the Pis at
+`npm run selfplay` to run tournaments continuously without occupying your Mac.
