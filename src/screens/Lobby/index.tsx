@@ -75,22 +75,24 @@ export function LobbyScreen({
       </View>
 
       <Text style={styles.sectionLabel}>NEW GAME</Text>
-      <Pressable style={styles.modeBtn} onPress={onPlayVsAI}>
-        <Text style={styles.modeTitle}>PLAY VS AI</Text>
-        <Text style={styles.modeDesc}>solo match against the computer</Text>
-      </Pressable>
-      <Pressable style={styles.modeBtn} onPress={onWatchAI}>
-        <Text style={styles.modeTitle}>WATCH AI VS AI</Text>
-        <Text style={styles.modeDesc}>sit back as the computer plays itself</Text>
-      </Pressable>
-      <Pressable style={styles.modeBtn} onPress={onPlayLocal}>
-        <Text style={styles.modeTitle}>PLAY LOCAL</Text>
-        <Text style={styles.modeDesc}>pass and play on one device</Text>
-      </Pressable>
-      <Pressable style={styles.modeBtn} onPress={onCreateOnline}>
-        <Text style={styles.modeTitle}>PLAY ONLINE</Text>
-        <Text style={styles.modeDesc}>create a game and wait for opponent</Text>
-      </Pressable>
+      <View style={styles.modeGrid}>
+        <Pressable style={styles.modeBtn} onPress={onPlayVsAI}>
+          <Text style={styles.modeTitle}>PLAY VS AI</Text>
+          <Text style={styles.modeDesc}>vs computer</Text>
+        </Pressable>
+        <Pressable style={styles.modeBtn} onPress={onWatchAI}>
+          <Text style={styles.modeTitle}>WATCH AI</Text>
+          <Text style={styles.modeDesc}>AI plays itself</Text>
+        </Pressable>
+        <Pressable style={styles.modeBtn} onPress={onPlayLocal}>
+          <Text style={styles.modeTitle}>PLAY LOCAL</Text>
+          <Text style={styles.modeDesc}>pass &amp; play</Text>
+        </Pressable>
+        <Pressable style={styles.modeBtn} onPress={onCreateOnline}>
+          <Text style={styles.modeTitle}>PLAY ONLINE</Text>
+          <Text style={styles.modeDesc}>find opponent</Text>
+        </Pressable>
+      </View>
 
       <ScrollView
         style={styles.gamesScroll}
@@ -152,16 +154,23 @@ const styles = StyleSheet.create({
   },
   sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
 
+  modeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
   modeBtn: {
+    width: '48.5%',
     borderWidth: 1,
     borderColor: COLORS.border,
     backgroundColor: COLORS.cardBg,
-    padding: 12,
-    marginBottom: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 8,
     borderRadius: 4,
   },
-  modeTitle: { color: COLORS.text, fontFamily: FONT.monoBold, fontSize: 14, marginBottom: 2 },
-  modeDesc: { color: '#ffffff', fontFamily: FONT.mono, fontSize: 11 },
+  modeTitle: { color: COLORS.text, fontFamily: FONT.monoBold, fontSize: 13, marginBottom: 2 },
+  modeDesc: { color: '#ffffff', fontFamily: FONT.mono, fontSize: 10 },
 
   gamesScroll: { flex: 1 },
   gamesContent: { paddingBottom: 16 },
