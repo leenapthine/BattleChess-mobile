@@ -53,6 +53,37 @@ export function playGame(
   return { winner: null, plies, reason: 'plyCap' };
 }
 
+/**
+ * Like playGame, but each side uses its own difficulty. Used to measure the
+ * value of search depth: pit depth N vs depth M with identical armies so the
+ * only asymmetry is how far each side looks ahead.
+ */
+export function playGameVs(
+  whiteArmy: ArmyConfig,
+  blackArmy: ArmyConfig,
+  whiteDifficulty: Difficulty,
+  blackDifficulty: Difficulty,
+  maxPlies = 200,
+): GameOutcome {
+  let state = createInitialState(whiteArmy, blackArmy);
+  let plies = 0;
+
+  while (terminalWinner(state) === null && plies < maxPlies) {
+    const difficulty = state.currentTurn === 'White' ? whiteDifficulty : blackDifficulty;
+    const actions = chooseTurn(state, difficulty);
+    if (!actions) {
+      const loser = state.currentTurn;
+      return { winner: loser === 'White' ? 'Black' : 'White', plies, reason: 'noMoves' };
+    }
+    for (const a of actions) state = gameReducer(state, a);
+    plies += 1;
+  }
+
+  const winner = terminalWinner(state);
+  if (winner) return { winner, plies, reason: 'kingCapture' };
+  return { winner: null, plies, reason: 'plyCap' };
+}
+
 export type Matchup = { aWins: number; bWins: number; draws: number; games: number };
 
 /**
