@@ -1,6 +1,6 @@
 import type { GameState, GameAction, Color } from '@/types/game';
 import { generateTurns } from './generateTurns';
-import { evaluate, materialScore, terminalWinner, WIN_SCORE } from './evaluate';
+import { evaluate, materialScore, terminalWinner, WIN_SCORE, type EvalFn } from './evaluate';
 
 export type Difficulty = {
   // How many plies (half-moves) to search. 1 = greedy (grab the best
@@ -18,7 +18,11 @@ export const DIFFICULTIES: Record<'easy' | 'normal', Difficulty> = {
  * (apply them through the real reducer). Returns null when there are no legal
  * turns. Negamax + alpha-beta over generateTurns.
  */
-export function chooseTurn(state: GameState, difficulty: Difficulty): GameAction[] | null {
+export function chooseTurn(
+  state: GameState,
+  difficulty: Difficulty,
+  evalFn: EvalFn = evaluate,
+): GameAction[] | null {
   const mover = state.currentTurn;
   const turns = generateTurns(state);
   if (turns.length === 0) return null;
@@ -34,7 +38,7 @@ export function chooseTurn(state: GameState, difficulty: Difficulty): GameAction
   let alpha = -Infinity;
 
   for (const { turn } of scored) {
-    const score = -negamax(turn.result, difficulty.depth - 1, -Infinity, -alpha, mover);
+    const score = -negamax(turn.result, difficulty.depth - 1, -Infinity, -alpha, mover, evalFn);
     if (score > bestScore) {
       bestScore = score;
       best.length = 0;
@@ -56,6 +60,7 @@ function negamax(
   alpha: number,
   beta: number,
   rootColor: Color,
+  evalFn: EvalFn,
 ): number {
   const winner = terminalWinner(state);
   if (winner) {
@@ -64,7 +69,7 @@ function negamax(
     return winner === state.currentTurn ? WIN_SCORE : -WIN_SCORE;
   }
   if (depth <= 0) {
-    return evaluate(state, state.currentTurn);
+    return evalFn(state, state.currentTurn);
   }
 
   const turns = generateTurns(state);
@@ -81,7 +86,7 @@ function negamax(
 
   let value = -Infinity;
   for (const { t } of ordered) {
-    value = Math.max(value, -negamax(t.result, depth - 1, -beta, -alpha, rootColor));
+    value = Math.max(value, -negamax(t.result, depth - 1, -beta, -alpha, rootColor, evalFn));
     alpha = Math.max(alpha, value);
     if (alpha >= beta) break;
   }
