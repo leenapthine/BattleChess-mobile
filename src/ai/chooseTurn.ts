@@ -5,12 +5,23 @@ import { evaluate, materialScore, terminalWinner, WIN_SCORE, type EvalFn } from 
 export type Difficulty = {
   // How many plies (half-moves) to search. 1 = greedy (grab the best
   // immediate position); 2 = also account for the opponent's best reply.
-  // (depth 3 is ~15s/move — too slow for interactive play.)
+  // (blanket depth 3 is ~15s/move — too slow for interactive play.)
   depth: number;
   // Chance per turn of playing a *random* legal move instead of the best one,
   // so the easiest level makes beginner mistakes. 0/undefined = always best.
   blunder?: number;
 };
+
+// NOTE — measured dead end (2026-06): a selective extension that searched
+// *volatile* lines (projectile fires + explosions: detonate/launch/beam/
+// boulder/kingShot/towerShot/zap) one ply deeper was built and A/B'd vs flat
+// depth-2 on identical armies. It was cheap (avg ~33ms/move, worst <650ms) but
+// scored 41.9% then 40.6% over 2×80 games — reproducibly *worse*. Cause: a
+// fixed +1 on only the volatile child returns leaf evals one tempo deeper than
+// its quiet siblings, so the parent compares scores across ply parities (the
+// odd/even horizon artifact) and misranks moves. The correct version is a full
+// quiescence search (explore ALL volatile continuations to a quiet leaf), not a
+// fixed +1 on a subset — tracked in FUTURE_WORK. Reverted to flat negamax.
 
 export type DifficultyLevel = 'easy' | 'medium' | 'hard';
 

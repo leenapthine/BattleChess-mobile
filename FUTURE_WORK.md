@@ -33,6 +33,7 @@ so the only variable is lookahead). Mirror armies, depth-2 default.
 | depth 1 → **depth 2** | **97%** | The one big win — and it's already the default. Lookahead is almost everything at this level. |
 | depth 2 → depth 3 | **57.5%** (40 games, ~60% draws, **~15 s/move**) | Modest edge, far too slow for interactive play. Diminishing returns per ply. |
 | **Richer handcrafted eval** (king safety + king-tropism/conversion) vs baseline | **50.8%** at small weights; **43.3%** when weighted up | **No help, and harmful when emphasized.** Reverted (`4e8d8ff`). |
+| **Selective extension** (depth-2 + 1 ply on projectile/explosion lines) vs flat depth-2 | **41.9%** then **40.6%** (2×80 games), avg ~33 ms/move | **No help — reproducibly worse.** A fixed +1 on only the volatile child compares leaf evals across ply parities (odd/even horizon artifact). Cheap, but wrong; reverted. The *correct* form is a full quiescence search (below). |
 
 **Conclusion: the cheap levers are exhausted.** Neither more depth nor a smarter
 *handcrafted* eval makes it meaningfully stronger. The high draw rate at depth 2+
@@ -113,6 +114,14 @@ If the goal is "a bit better" without ML:
 - **Search engineering** — iterative deepening + a time budget + a **Web Worker** so
   depth 3 becomes affordable interactively. The pure engine makes a worker easy.
   (Expected value is modest — depth-3 only scored 57.5%.)
+- **Quiescence search (the *right* selective deepening)** — the naive +1-ply
+  extension on volatile moves failed (see §2: it compares leaf evals across ply
+  parities). The correct form only evaluates *quiet* leaves: at depth 0, instead
+  of returning `evalFn` immediately, keep searching **all** projectile-fire /
+  explosion continuations until the position is quiet, then evaluate. That keeps
+  the horizon consistent and is what stops the bot mis-valuing blast/shot trades.
+  More involved than the +1 hack, and the payoff is bounded by how crude the
+  material+positional eval is — likely worth doing only alongside L1's better eval.
 - **Smarter army building** — let the AI spend its point budget and counter-pick
   off the human's army (it currently rolls a random archetype; see
   `src/ai/buildArmy.ts`).
